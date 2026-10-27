@@ -299,9 +299,59 @@
     .topbar { padding-left: 20px; padding-right: 20px; }
     .brand-name { font-size: 22px; }
   }
+
+  /* ---------- Landing (choose view / edit) ---------- */
+  .landing {
+    position: fixed; inset: 0; z-index: 200; background: var(--paper);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .landing[hidden] { display: none; }
+  .landing-card {
+    width: 100%; max-width: 340px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .landing-gift { font-size: 52px; line-height: 1; }
+  .landing-title { font-size: 30px; font-weight: 600; margin: 2px 0 0; }
+  .landing-tagline { color: var(--muted); font-size: 14px; margin: 0 0 8px; }
+  .landing-choices { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+  .landing-btn { width: 100%; padding: 14px; font-size: 16px; border-radius: 13px; }
+  .landing-pw { display: flex; flex-direction: column; gap: 9px; width: 100%; margin-top: 6px; text-align: left; }
+  .landing-pw[hidden] { display: none; }
+  .landing-pw label { font-size: 12.5px; color: var(--muted); }
+  .landing-pw input {
+    width: 100%; font-size: 16px; color: var(--ink); background: var(--card);
+    border: 1px solid var(--card-edge); border-radius: 12px; padding: 12px 13px; box-sizing: border-box;
+  }
+  .landing-pw input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); outline: none; }
+  .landing-pw-actions { display: flex; gap: 8px; }
+  .landing-pw-actions .btn { flex: 1; }
+  .landing-pw-err { color: var(--accent-ink); font-size: 13px; margin: 2px 0 0; }
+  .landing-pw-err[hidden] { display: none; }
 </style>
 </head>
 <body>
+
+<!-- Landing: choose "view" or "edit" (edit is password-gated) -->
+<div class="landing" id="landing">
+  <div class="landing-card">
+    <span class="landing-gift" aria-hidden="true">🎁</span>
+    <h1 class="landing-title">Ønskeliste</h1>
+    <p class="landing-tagline" data-i18n="landing_tagline">Vælg hvad du vil</p>
+    <div class="landing-choices">
+      <button class="btn btn-accent landing-btn" id="go-view" data-i18n="landing_view">Se ønskeseddel</button>
+      <button class="btn btn-ghost landing-btn" id="go-edit" data-i18n="landing_edit">Rediger ønskeseddel</button>
+    </div>
+    <form class="landing-pw" id="landing-pw" hidden autocomplete="off">
+      <label for="pw-input" data-i18n="landing_pw_label">Kodeord</label>
+      <input id="pw-input" type="password" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" data-i18n-ph="landing_pw_ph" placeholder="Kodeord">
+      <p class="landing-pw-err" id="pw-err" data-i18n="landing_pw_err" hidden>Forkert kodeord</p>
+      <div class="landing-pw-actions">
+        <button type="button" class="btn btn-ghost" id="pw-cancel" data-i18n="landing_pw_cancel">Annullér</button>
+        <button type="submit" class="btn btn-accent" id="pw-go" data-i18n="landing_pw_go">Fortsæt</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <header class="topbar">
   <div class="topbar-row">
@@ -424,6 +474,7 @@
    Configuration
    ============================================================ */
 const OWNER_NAME = "Steven";                 // <-- change to the wishlist owner's name
+const EDIT_PASSWORD = "Mountainbike";        // <-- password to enter "Rediger ønskeseddel" (edit) mode. Soft gate; owner still needs the GitHub token to actually save.
 const REPO       = "wonderdk/wishlistr";
 const BRANCH     = "main";
 const CSV_PATH   = "wishes.csv";
@@ -446,6 +497,16 @@ const OWNER_EDITABLE = ["title","description","url","image","price","currency","
 const STRINGS = {
   da: {
     owner_badge: "Ejer",
+    landing_tagline: "Vælg hvad du vil",
+    landing_view: "Se ønskeseddel",
+    landing_edit: "Rediger ønskeseddel",
+    landing_pw_label: "Kodeord",
+    landing_pw_ph: "Kodeord",
+    landing_pw_go: "Fortsæt",
+    landing_pw_cancel: "Annullér",
+    landing_pw_err: "Forkert kodeord",
+    confirm_unwrap_prompt: 'Skriv "FJERN" for at fjerne reservation',
+    confirm_unwrap_bad: "Reservation ikke fjernet",
     brand_sub_family: "{name}s ønsker",
     brand_sub_owner: "{name}s liste · ejer-visning",
     search_ph: "Søg ønsker…",
@@ -490,6 +551,16 @@ const STRINGS = {
   },
   en: {
     owner_badge: "Owner",
+    landing_tagline: "Choose what to do",
+    landing_view: "View wishlist",
+    landing_edit: "Edit wishlist",
+    landing_pw_label: "Password",
+    landing_pw_ph: "Password",
+    landing_pw_go: "Continue",
+    landing_pw_cancel: "Cancel",
+    landing_pw_err: "Wrong password",
+    confirm_unwrap_prompt: 'Type "FJERN" to remove the reservation',
+    confirm_unwrap_bad: "Reservation not removed",
     brand_sub_family: "{name}'s wishes",
     brand_sub_owner: "{name}'s list · owner view",
     search_ph: "Search wishes…",
@@ -569,7 +640,8 @@ function setLang(next) {
 /* ============================================================
    State
    ============================================================ */
-const OWNER = new URLSearchParams(location.search).get("owner") === "1";
+const URL_OWNER = new URLSearchParams(location.search).get("owner") === "1";
+let OWNER = false;   // decided at boot: URL ?owner=1, a stored choice, or the landing "Rediger" flow
 let GH_TOKEN = localStorage.getItem("wl_gh_token") || "";
 let wishes = [];
 let ui = { q: "", sort: "wanted", showWrapped: true };
@@ -704,6 +776,9 @@ async function doWrap(id) {
 
 async function doUnwrap(id, force) {
   const w = wishes.find(x => x.id === id); if (!w) return;
+  const ans = prompt(t("confirm_unwrap_prompt"));
+  if (ans === null) return;                                      // cancelled
+  if (ans.trim().toUpperCase() !== "FJERN") { toast(t("confirm_unwrap_bad")); return; }
   const prev = snapshot(w);
   w.reserved = "0"; w.reserved_by = ""; w.reserved_at = "";
   render(id, "unwrap");
@@ -1039,7 +1114,57 @@ function setup() {
 
   load();
 }
-document.addEventListener("DOMContentLoaded", setup);
+
+/* ============================================================
+   Landing / routing — the first thing you see is a choice:
+   "Se ønskeseddel" (family view) or "Rediger ønskeseddel" (owner,
+   password-gated). The choice is remembered for the browser session.
+   ============================================================ */
+function startApp() {
+  const l = document.getElementById("landing");
+  if (l) l.hidden = true;
+  setup();
+}
+function submitPassword(e) {
+  if (e) e.preventDefault();
+  const inp = document.getElementById("pw-input");
+  const err = document.getElementById("pw-err");
+  if (inp.value.trim().toLowerCase() === EDIT_PASSWORD.toLowerCase()) {
+    sessionStorage.setItem("wl_mode", "owner");
+    OWNER = true;
+    startApp();
+  } else {
+    err.hidden = false; inp.select();
+  }
+}
+function showLanding() {
+  applyStaticI18n();   // localise the landing before it is seen
+  document.getElementById("landing").hidden = false;
+  document.getElementById("go-view").addEventListener("click", () => {
+    sessionStorage.setItem("wl_mode", "view"); OWNER = false; startApp();
+  });
+  document.getElementById("go-edit").addEventListener("click", () => {
+    document.getElementById("landing-pw").hidden = false;
+    document.getElementById("pw-input").focus();
+  });
+  document.getElementById("pw-cancel").addEventListener("click", () => {
+    document.getElementById("landing-pw").hidden = true;
+    document.getElementById("pw-input").value = "";
+    document.getElementById("pw-err").hidden = true;
+  });
+  document.getElementById("pw-input").addEventListener("input", () => {
+    document.getElementById("pw-err").hidden = true;
+  });
+  document.getElementById("landing-pw").addEventListener("submit", submitPassword);
+}
+function boot() {
+  const stored = sessionStorage.getItem("wl_mode");
+  if (URL_OWNER)          { OWNER = true;  return startApp(); }  // ?owner=1 bypass
+  if (stored === "owner") { OWNER = true;  return startApp(); }
+  if (stored === "view")  { OWNER = false; return startApp(); }
+  showLanding();
+}
+document.addEventListener("DOMContentLoaded", boot);
 </script>
 </body>
 </html>
