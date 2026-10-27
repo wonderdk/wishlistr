@@ -129,7 +129,7 @@
     transition: background .15s, color .15s, border-color .15s;
   }
   .chip[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .chip.toggle[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); }
+  .chip.toggle[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
 
   .toolbar { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
   .toolbar label { font-size: 12.5px; color: var(--muted); }
@@ -327,12 +327,6 @@
 
   <div class="chip-rows">
     <div class="chips" id="cat-chips" role="group" data-i18n-aria="cat_aria" aria-label="Kategori"></div>
-    <div class="chips" id="price-chips" role="group" data-i18n-aria="price_aria" aria-label="Pris">
-      <button class="chip" data-price="all" data-i18n="price_all" aria-pressed="true">Alle priser</button>
-      <button class="chip" data-price="lo" data-i18n="price_lo" aria-pressed="false">Under 200</button>
-      <button class="chip" data-price="mid" data-i18n="price_mid" aria-pressed="false">200–500</button>
-      <button class="chip" data-price="hi" data-i18n="price_hi" aria-pressed="false">Over 500</button>
-    </div>
   </div>
 
   <div class="toolbar">
@@ -395,8 +389,12 @@
       </div>
       <div class="field">
         <label for="f-category" data-i18n="f_category">Kategori</label>
-        <input id="f-category" type="text" data-i18n-ph="f_category_ph" placeholder="f.eks. Bøger" list="cat-list">
-        <datalist id="cat-list"></datalist>
+        <select id="f-category">
+          <option value="Medier">Medier</option>
+          <option value="Tøj">Tøj</option>
+          <option value="Gadgets">Gadgets</option>
+          <option value="Andet" selected>Andet</option>
+        </select>
       </div>
     </div>
     <p class="hint" id="wish-hint"></p>
@@ -469,7 +467,7 @@ const STRINGS = {
     empty_owner: "Ingen ønsker endnu — tryk “Tilføj ønske” for at starte.",
     empty_family: "Ingen ønsker endnu.",
     no_match: "Ingen ønsker matcher filtrene.",
-    wrap_it: "🎁 Pak ind", edit: "Rediger", shop: "Køb ↗",
+    wrap_it: "🎁 Pak ind", edit: "Rediger", shop: "Link ↗",
     wrapped: "🎀 Pakket ind", by_you: "af dig", reserved: "reserveret",
     unwrap: "Pak ud", unwrap_force: "Ikke dig? Pak ud alligevel",
     prio: "Prioritet {n} af 3",
@@ -513,7 +511,7 @@ const STRINGS = {
     empty_owner: "No wishes yet — tap “Add wish” to start.",
     empty_family: "No wishes yet.",
     no_match: "Nothing matches those filters.",
-    wrap_it: "🎁 Wrap it", edit: "Edit", shop: "Shop ↗",
+    wrap_it: "🎁 Wrap it", edit: "Edit", shop: "Link ↗",
     wrapped: "🎀 Wrapped", by_you: "by you", reserved: "reserved",
     unwrap: "Unwrap", unwrap_force: "Not you? Unwrap anyway",
     prio: "Priority {n} of 3",
@@ -579,7 +577,7 @@ function setLang(next) {
 const OWNER = new URLSearchParams(location.search).get("owner") === "1";
 let GH_TOKEN = localStorage.getItem("wl_gh_token") || "";
 let wishes = [];
-let ui = { q: "", cat: "all", price: "all", sort: "wanted", showWrapped: true };
+let ui = { q: "", cat: "all", sort: "wanted", showWrapped: true };
 let editingId = null;
 let tokenResolve = null;
 
@@ -814,10 +812,6 @@ function fmtPrice(p, cur) {
 function escapeHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 }
-function priceBucket(p) {
-  const n = parseFloat(p); if (isNaN(n)) return "mid";
-  if (n < 200) return "lo"; if (n <= 500) return "mid"; return "hi";
-}
 function isWrapped(w) { return !OWNER && w.reserved === "1"; }
 
 function categories() {
@@ -829,15 +823,12 @@ function buildCatChips() {
   host.innerHTML =
     `<button class="chip" data-cat="all" aria-pressed="${ui.cat === "all"}">${escapeHtml(t("cat_all"))}</button>` +
     cats.map(c => `<button class="chip" data-cat="${escapeHtml(c)}" aria-pressed="${ui.cat === c}">${escapeHtml(c)}</button>`).join("");
-  // category datalist for the owner form
-  document.getElementById("cat-list").innerHTML = cats.map(c => `<option value="${escapeHtml(c)}">`).join("");
 }
 
 function getFiltered() {
   const q = ui.q.toLowerCase();
   let list = wishes.filter(w => {
     if (ui.cat !== "all" && (w.category || "") !== ui.cat) return false;
-    if (ui.price !== "all" && priceBucket(w.price) !== ui.price) return false;
     if (q && !((w.title + " " + w.description + " " + w.category).toLowerCase().includes(q))) return false;
     if (!ui.showWrapped && isWrapped(w)) return false;
     return true;
@@ -970,7 +961,9 @@ function setForm(w) {
   document.getElementById("f-price").value = w.price || "";
   document.getElementById("f-currency").value = (w.currency || "DKK").toUpperCase();
   document.getElementById("f-priority").value = String(w.priority || "2");
-  document.getElementById("f-category").value = w.category || "";
+  const catSel = document.getElementById("f-category");
+  catSel.value = w.category || "Andet";
+  if (!catSel.value) catSel.value = "Andet";   // unmapped/legacy category falls back to Andet
 }
 function readForm() {
   return {
@@ -1046,12 +1039,6 @@ function setup() {
   document.getElementById("cat-chips").addEventListener("click", e => {
     const b = e.target.closest("[data-cat]"); if (!b) return;
     ui.cat = b.dataset.cat;
-    [...e.currentTarget.children].forEach(c => c.setAttribute("aria-pressed", c === b));
-    render();
-  });
-  document.getElementById("price-chips").addEventListener("click", e => {
-    const b = e.target.closest("[data-price]"); if (!b) return;
-    ui.price = b.dataset.price;
     [...e.currentTarget.children].forEach(c => c.setAttribute("aria-pressed", c === b));
     render();
   });
