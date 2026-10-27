@@ -466,6 +466,18 @@
   </div>
 </div>
 
+<!-- Confirm: remove reservation (in-page, so it works in in-app browsers like Messenger) -->
+<div class="modal" id="confirm-modal">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <h2 id="confirm-title" data-i18n="confirm_unwrap_title">Fjern reservation?</h2>
+    <p class="hint" data-i18n="confirm_unwrap_body">Er du sikker på, at du vil fjerne reservationen?</p>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" data-i18n="cancel" onclick="resolveConfirm(false)">Annullér</button>
+      <button class="btn btn-accent" data-i18n="confirm_unwrap_yes" onclick="resolveConfirm(true)">Fjern reservation</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -504,8 +516,9 @@ const STRINGS = {
     landing_pw_go: "Fortsæt",
     landing_pw_cancel: "Annullér",
     landing_pw_err: "Forkert kodeord",
-    confirm_unwrap_prompt: 'Skriv "FJERN" for at fjerne reservation',
-    confirm_unwrap_bad: "Reservation ikke fjernet",
+    confirm_unwrap_title: "Fjern reservation?",
+    confirm_unwrap_body: "Er du sikker på, at du vil fjerne reservationen?",
+    confirm_unwrap_yes: "Fjern reservation",
     brand_sub_family: "{name}s ønsker",
     brand_sub_owner: "{name}s liste · ejer-visning",
     search_ph: "Søg ønsker…",
@@ -558,8 +571,9 @@ const STRINGS = {
     landing_pw_go: "Continue",
     landing_pw_cancel: "Cancel",
     landing_pw_err: "Wrong password",
-    confirm_unwrap_prompt: 'Type "FJERN" to remove the reservation',
-    confirm_unwrap_bad: "Reservation not removed",
+    confirm_unwrap_title: "Remove reservation?",
+    confirm_unwrap_body: "Are you sure you want to remove the reservation?",
+    confirm_unwrap_yes: "Remove reservation",
     brand_sub_family: "{name}'s wishes",
     brand_sub_owner: "{name}'s list · owner view",
     search_ph: "Search wishes…",
@@ -775,9 +789,7 @@ async function doWrap(id) {
 
 async function doUnwrap(id, force) {
   const w = wishes.find(x => x.id === id); if (!w) return;
-  const ans = prompt(t("confirm_unwrap_prompt"));
-  if (ans === null) return;                                      // cancelled
-  if (ans.trim().toUpperCase() !== "FJERN") { toast(t("confirm_unwrap_bad")); return; }
+  if (!(await confirmUnwrap())) return;                          // in-page confirm (works in in-app browsers)
   const prev = snapshot(w);
   w.reserved = "0"; w.reserved_by = ""; w.reserved_at = "";
   render(id, "unwrap");
@@ -821,6 +833,20 @@ function saveToken() {
 function cancelToken() {
   document.getElementById("token-modal").classList.remove("open");
   if (tokenResolve) { tokenResolve(false); tokenResolve = null; }
+}
+
+/* In-page confirm for removing a reservation. Native prompt()/confirm() are
+   blocked in some in-app browsers (e.g. Messenger), so we use our own modal. */
+let confirmResolve = null;
+function confirmUnwrap() {
+  return new Promise(resolve => {
+    confirmResolve = resolve;
+    document.getElementById("confirm-modal").classList.add("open");
+  });
+}
+function resolveConfirm(val) {
+  document.getElementById("confirm-modal").classList.remove("open");
+  if (confirmResolve) { confirmResolve(val); confirmResolve = null; }
 }
 
 // mutate(remoteRows) -> new rows array. Must preserve reserved* for existing rows.
@@ -1109,7 +1135,11 @@ function setup() {
   window.addEventListener("focus", maybeRefresh);
 
   // tap backdrop to close modals
-  document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", e => { if (e.target === m) m.classList.remove("open"); }));
+  document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", e => {
+    if (e.target !== m) return;
+    m.classList.remove("open");
+    if (m.id === "confirm-modal" && confirmResolve) { confirmResolve(false); confirmResolve = null; }
+  }));
 
   load();
 }
