@@ -29,9 +29,7 @@ export default {
 
     // ---- Shared-key gate (trim guards against a stray newline/space in the stored secret) ----
     if ((request.headers.get("X-Wishlist-Key") || "").trim() !== (env.WISHLIST_KEY || "").trim()) {
-      // TEMP diagnostic (WISHLIST_KEY is public anyway): remove once verified.
-      return json({ ok: false, error: "Unauthorized",
-        _diag: { keySet: !!env.WISHLIST_KEY, keyLen: (env.WISHLIST_KEY || "").length, tokenSet: !!env.GITHUB_TOKEN } }, 401);
+      return json({ ok: false, error: "Unauthorized" }, 401);
     }
 
     // ---- Validate body ----
