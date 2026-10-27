@@ -426,7 +426,7 @@ const GITHUB_API = `https://api.github.com/repos/${REPO}/contents/${CSV_PATH}`;
 const CSV_FALLBACK = CSV_PATH;
 
 // Cloudflare Worker that performs the family write path (holds the GitHub token server-side).
-const RESERVE_ENDPOINT = "https://wishlistr.YOUR_SUBDOMAIN.workers.dev";  // <-- set after you deploy the Worker
+const RESERVE_ENDPOINT = "https://wishlistr.wonderdk.workers.dev";  // deployed Cloudflare Worker
 // NOTE: this key is embedded in a PUBLIC page, so it is not a real secret — it is a soft gate
 // that keeps casual/bot traffic off the Worker. The Worker checks it against its WISHLIST_KEY secret.
 const WISHLIST_KEY = "YRnIflhWjOPdpcZD8wvGQiaV6L2eCMb5gEUBSF3J";
