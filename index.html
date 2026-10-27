@@ -92,6 +92,17 @@
     border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
     padding: 3px 8px; border-radius: 999px;
   }
+  /* Language switch */
+  .lang {
+    flex: 0 0 auto; display: inline-flex; align-items: stretch; cursor: pointer;
+    border: 1px solid var(--card-edge); background: var(--card); border-radius: 999px; overflow: hidden; padding: 0;
+  }
+  .lang span {
+    font-size: 11.5px; font-weight: 800; letter-spacing: .4px; color: var(--muted);
+    padding: 5px 9px; line-height: 1.2; transition: background .15s, color .15s;
+  }
+  .lang span.on { background: var(--accent); color: #fff; }
+
   .search-wrap { position: relative; margin-top: 10px; }
   .search-wrap input {
     width: 100%; font-size: 16px; color: var(--ink);
@@ -172,10 +183,8 @@
     display: inline-flex; align-items: center; gap: 5px;
   }
   .wrap-btn { flex: 1; }
-  .wrap-btn.wrapped-style { background: var(--card); color: var(--muted); border: 1px dashed var(--card-edge); }
 
   /* ---------- Wrapped present ---------- */
-  .card.wrapped { }
   .card.wrapped .thumb img, .card.wrapped .thumb { filter: saturate(.6); }
   .wrap-paper {
     position: absolute; inset: 0; z-index: 5; pointer-events: none;
@@ -304,93 +313,96 @@
       </div>
     </div>
     <span class="spacer"></span>
-    <span class="owner-badge" id="owner-badge" style="display:none">Owner</span>
+    <span class="owner-badge" id="owner-badge" data-i18n="owner_badge" style="display:none">Ejer</span>
+    <button class="lang" id="lang-toggle" aria-label="Sprog / Language" title="Dansk / English">
+      <span data-lang="da">DA</span><span data-lang="en">EN</span>
+    </button>
   </div>
 
   <div class="search-wrap">
     <span class="mag" aria-hidden="true">🔍</span>
-    <input id="search" type="search" inputmode="search" placeholder="Search wishes…" autocomplete="off" aria-label="Search wishes">
-    <button class="clear" id="search-clear" aria-label="Clear search">✕</button>
+    <input id="search" type="search" inputmode="search" data-i18n-ph="search_ph" data-i18n-aria="search_aria" placeholder="Søg ønsker…" autocomplete="off" aria-label="Søg ønsker">
+    <button class="clear" id="search-clear" data-i18n-aria="clear_search" aria-label="Ryd søgning">✕</button>
   </div>
 
   <div class="chip-rows">
-    <div class="chips" id="cat-chips" role="group" aria-label="Category"></div>
-    <div class="chips" id="price-chips" role="group" aria-label="Price">
-      <button class="chip" data-price="all" aria-pressed="true">All prices</button>
-      <button class="chip" data-price="lo" aria-pressed="false">Under 200</button>
-      <button class="chip" data-price="mid" aria-pressed="false">200–500</button>
-      <button class="chip" data-price="hi" aria-pressed="false">Over 500</button>
+    <div class="chips" id="cat-chips" role="group" data-i18n-aria="cat_aria" aria-label="Kategori"></div>
+    <div class="chips" id="price-chips" role="group" data-i18n-aria="price_aria" aria-label="Pris">
+      <button class="chip" data-price="all" data-i18n="price_all" aria-pressed="true">Alle priser</button>
+      <button class="chip" data-price="lo" data-i18n="price_lo" aria-pressed="false">Under 200</button>
+      <button class="chip" data-price="mid" data-i18n="price_mid" aria-pressed="false">200–500</button>
+      <button class="chip" data-price="hi" data-i18n="price_hi" aria-pressed="false">Over 500</button>
     </div>
   </div>
 
   <div class="toolbar">
-    <label for="sort">Sort</label>
-    <select class="sort" id="sort" aria-label="Sort">
-      <option value="wanted">Most wanted</option>
-      <option value="price-asc">Price: low to high</option>
-      <option value="newest">Newest</option>
+    <label for="sort" data-i18n="sort_label">Sortér</label>
+    <select class="sort" id="sort" data-i18n-aria="sort_label" aria-label="Sortér">
+      <option value="wanted" data-i18n="sort_wanted">Mest ønsket</option>
+      <option value="price-asc" data-i18n="sort_price">Pris: lav til høj</option>
+      <option value="newest" data-i18n="sort_newest">Nyeste</option>
     </select>
     <span class="spacer"></span>
-    <button class="chip toggle" id="show-wrapped" aria-pressed="true" title="Show wrapped wishes">🎀 Show wrapped</button>
+    <button class="chip toggle" id="show-wrapped" aria-pressed="true" data-i18n="show_wrapped" data-i18n-title="show_wrapped_title" title="Vis indpakkede ønsker">🎀 Vis indpakkede</button>
   </div>
 </header>
 
 <main>
-  <div class="status" id="status"><span class="big">🎁</span>Loading wishes…</div>
+  <div class="status" id="status"><span class="big">🎁</span><span data-i18n="loading">Henter ønsker…</span></div>
   <div class="grid" id="grid" hidden></div>
 </main>
 
-<button class="fab" id="fab" onclick="openAdd()">＋ Add wish</button>
+<button class="fab" id="fab" data-i18n="fab_add" onclick="openAdd()">＋ Tilføj ønske</button>
 
 <!-- Add / Edit wish (owner only) -->
 <div class="modal" id="wish-modal">
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="wish-modal-title">
-    <h2 id="wish-modal-title">Add wish</h2>
+    <h2 id="wish-modal-title" data-i18n="add_wish">Tilføj ønske</h2>
     <div class="field">
-      <label for="f-title">Title</label>
-      <input id="f-title" type="text" placeholder="What do you want?">
+      <label for="f-title" data-i18n="f_title">Titel</label>
+      <input id="f-title" type="text" data-i18n-ph="f_title_ph" placeholder="Hvad ønsker du dig?">
     </div>
     <div class="field">
-      <label for="f-desc">Short description</label>
-      <textarea id="f-desc" placeholder="A line or two (optional)"></textarea>
+      <label for="f-desc" data-i18n="f_desc">Kort beskrivelse</label>
+      <textarea id="f-desc" data-i18n-ph="f_desc_ph" placeholder="En linje eller to (valgfrit)"></textarea>
     </div>
     <div class="field">
-      <label for="f-url">Shop link</label>
+      <label for="f-url" data-i18n="f_url">Link til butik</label>
       <input id="f-url" type="url" inputmode="url" placeholder="https://…">
     </div>
     <div class="field">
-      <label for="f-image">Image URL</label>
-      <input id="f-image" type="url" inputmode="url" placeholder="https://… (optional)">
+      <label for="f-image" data-i18n="f_image">Billede-URL</label>
+      <input id="f-image" type="url" inputmode="url" data-i18n-ph="f_image_ph" placeholder="https://… (valgfrit)">
     </div>
     <div class="field-row">
       <div class="field">
-        <label for="f-price">Price</label>
+        <label for="f-price" data-i18n="f_price">Pris</label>
         <input id="f-price" type="number" inputmode="decimal" min="0" step="1" placeholder="0">
       </div>
       <div class="field">
-        <label for="f-currency">Currency</label>
+        <label for="f-currency" data-i18n="f_currency">Valuta</label>
         <input id="f-currency" type="text" value="DKK" maxlength="4">
       </div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label for="f-priority">Priority (1–3)</label>
+        <label for="f-priority" data-i18n="f_priority">Prioritet (1–3)</label>
         <select id="f-priority">
-          <option value="3">3 — most wanted</option>
-          <option value="2" selected>2 — would love</option>
-          <option value="1">1 — nice to have</option>
+          <option value="3" data-i18n="prio3">3 — mest ønsket</option>
+          <option value="2" selected data-i18n="prio2">2 — vil gerne have</option>
+          <option value="1" data-i18n="prio1">1 — ville være rart</option>
         </select>
       </div>
       <div class="field">
-        <label for="f-category">Category</label>
-        <input id="f-category" type="text" placeholder="e.g. Books" list="cat-list">
+        <label for="f-category" data-i18n="f_category">Kategori</label>
+        <input id="f-category" type="text" data-i18n-ph="f_category_ph" placeholder="f.eks. Bøger" list="cat-list">
         <datalist id="cat-list"></datalist>
       </div>
     </div>
     <p class="hint" id="wish-hint"></p>
     <div class="sheet-actions">
-      <button class="btn btn-ghost" onclick="closeModal('wish-modal')">Cancel</button>
-      <button class="btn btn-accent" id="wish-save" onclick="saveWish()">Save</button>
+      <button class="btn btn-ghost" data-i18n="cancel" onclick="closeModal('wish-modal')">Annullér</button>
+      <button class="btn btn-accent" id="wish-save" data-i18n="save" onclick="saveWish()">Gem</button>
     </div>
   </div>
 </div>
@@ -398,15 +410,15 @@
 <!-- GitHub token (owner only) -->
 <div class="modal" id="token-modal">
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="token-modal-title">
-    <h2 id="token-modal-title">GitHub token</h2>
-    <p class="hint">Paste a fine-grained personal access token with <strong>Contents: Read and write</strong> on the <strong>wishlistr</strong> repo. It is stored only in this browser, never sent anywhere except GitHub.</p>
+    <h2 id="token-modal-title" data-i18n="token_title">GitHub-token</h2>
+    <p class="hint" id="token-help" data-i18n-html="token_help">Indsæt et fine-grained personligt adgangstoken med <strong>Contents: Read and write</strong> på <strong>wishlistr</strong>-repoet. Det gemmes kun i denne browser og sendes aldrig andre steder end til GitHub.</p>
     <div class="field">
-      <label for="token-input">Token</label>
+      <label for="token-input" data-i18n="token_label">Token</label>
       <input id="token-input" type="password" autocomplete="off" placeholder="github_pat_…">
     </div>
     <div class="sheet-actions">
-      <button class="btn btn-ghost" onclick="cancelToken()">Cancel</button>
-      <button class="btn btn-accent" onclick="saveToken()">Save token</button>
+      <button class="btn btn-ghost" data-i18n="cancel" onclick="cancelToken()">Annullér</button>
+      <button class="btn btn-accent" data-i18n="save_token" onclick="saveToken()">Gem token</button>
     </div>
   </div>
 </div>
@@ -433,6 +445,133 @@ const WISHLIST_KEY = "YRnIflhWjOPdpcZD8wvGQiaV6L2eCMb5gEUBSF3J";
 
 const COLUMNS = ["id","title","description","url","image","price","currency","priority","category","reserved","reserved_by","reserved_at"];
 const OWNER_EDITABLE = ["title","description","url","image","price","currency","priority","category"];
+
+/* ============================================================
+   Language (Danish default, English optional, remembered per device)
+   ============================================================ */
+const STRINGS = {
+  da: {
+    owner_badge: "Ejer",
+    brand_sub_family: "{name}s ønsker",
+    brand_sub_owner: "{name}s liste · ejer-visning",
+    search_ph: "Søg ønsker…",
+    search_aria: "Søg ønsker",
+    clear_search: "Ryd søgning",
+    cat_aria: "Kategori",
+    price_aria: "Pris",
+    cat_all: "Alle",
+    price_all: "Alle priser", price_lo: "Under 200", price_mid: "200–500", price_hi: "Over 500",
+    sort_label: "Sortér",
+    sort_wanted: "Mest ønsket", sort_price: "Pris: lav til høj", sort_newest: "Nyeste",
+    show_wrapped: "🎀 Vis indpakkede", show_wrapped_title: "Vis indpakkede ønsker",
+    loading: "Henter ønsker…",
+    load_error: "Kunne ikke hente ønskelisten.",
+    empty_owner: "Ingen ønsker endnu — tryk “Tilføj ønske” for at starte.",
+    empty_family: "Ingen ønsker endnu.",
+    no_match: "Ingen ønsker matcher filtrene.",
+    wrap_it: "🎁 Pak ind", edit: "Rediger", shop: "Køb ↗",
+    wrapped: "🎀 Pakket ind", by_you: "af dig", reserved: "reserveret",
+    unwrap: "Pak ud", unwrap_force: "Ikke dig? Pak ud alligevel",
+    prio: "Prioritet {n} af 3",
+    fab_add: "＋ Tilføj ønske",
+    add_wish: "Tilføj ønske", edit_wish: "Rediger ønske", add: "Tilføj", save: "Gem", saving: "Gemmer…",
+    f_title: "Titel", f_title_ph: "Hvad ønsker du dig?",
+    f_desc: "Kort beskrivelse", f_desc_ph: "En linje eller to (valgfrit)",
+    f_url: "Link til butik",
+    f_image: "Billede-URL", f_image_ph: "https://… (valgfrit)",
+    f_price: "Pris", f_currency: "Valuta",
+    f_priority: "Prioritet (1–3)", prio3: "3 — mest ønsket", prio2: "2 — vil gerne have", prio1: "1 — ville være rart",
+    f_category: "Kategori", f_category_ph: "f.eks. Bøger",
+    cancel: "Annullér",
+    token_title: "GitHub-token",
+    token_help: "Indsæt et fine-grained personligt adgangstoken med <strong>Contents: Read and write</strong> på <strong>wishlistr</strong>-repoet. Det gemmes kun i denne browser og sendes aldrig andre steder end til GitHub.",
+    token_label: "Token", save_token: "Gem token",
+    title_required: "En titel er påkrævet", saved: "Gemt", added: "Tilføjet",
+    wrap_fail: "Kunne ikke pakke ind — ", unwrap_fail: "Kunne ikke pakke ud — ",
+    err_bad_response: "Serveren svarede forkert", err_server: "Serverfejl ",
+    err_token_rejected: "GitHub afviste tokenet. Det blev ryddet — du bliver spurgt igen. Tjek at det har Contents: Read and write.",
+    err_read: "Kunne ikke læse wishes.csv (", err_write: "GitHub-skrivning fejlede (", err_load: "Kunne ikke hente wishes.csv (",
+    srv_already: "Nogen har allerede pakket den ind", srv_notfound: "Ønsket blev ikke fundet",
+    srv_unauth: "Ikke tilladt", srv_notconf: "Serveren er ikke sat op",
+  },
+  en: {
+    owner_badge: "Owner",
+    brand_sub_family: "{name}'s wishes",
+    brand_sub_owner: "{name}'s list · owner view",
+    search_ph: "Search wishes…",
+    search_aria: "Search wishes",
+    clear_search: "Clear search",
+    cat_aria: "Category",
+    price_aria: "Price",
+    cat_all: "All",
+    price_all: "All prices", price_lo: "Under 200", price_mid: "200–500", price_hi: "Over 500",
+    sort_label: "Sort",
+    sort_wanted: "Most wanted", sort_price: "Price: low to high", sort_newest: "Newest",
+    show_wrapped: "🎀 Show wrapped", show_wrapped_title: "Show wrapped wishes",
+    loading: "Loading wishes…",
+    load_error: "Could not load the wishlist.",
+    empty_owner: "No wishes yet — tap “Add wish” to start.",
+    empty_family: "No wishes yet.",
+    no_match: "Nothing matches those filters.",
+    wrap_it: "🎁 Wrap it", edit: "Edit", shop: "Shop ↗",
+    wrapped: "🎀 Wrapped", by_you: "by you", reserved: "reserved",
+    unwrap: "Unwrap", unwrap_force: "Not you? Unwrap anyway",
+    prio: "Priority {n} of 3",
+    fab_add: "＋ Add wish",
+    add_wish: "Add wish", edit_wish: "Edit wish", add: "Add", save: "Save", saving: "Saving…",
+    f_title: "Title", f_title_ph: "What do you want?",
+    f_desc: "Short description", f_desc_ph: "A line or two (optional)",
+    f_url: "Shop link",
+    f_image: "Image URL", f_image_ph: "https://… (optional)",
+    f_price: "Price", f_currency: "Currency",
+    f_priority: "Priority (1–3)", prio3: "3 — most wanted", prio2: "2 — would love", prio1: "1 — nice to have",
+    f_category: "Category", f_category_ph: "e.g. Books",
+    cancel: "Cancel",
+    token_title: "GitHub token",
+    token_help: "Paste a fine-grained personal access token with <strong>Contents: Read and write</strong> on the <strong>wishlistr</strong> repo. It is stored only in this browser, never sent anywhere except GitHub.",
+    token_label: "Token", save_token: "Save token",
+    title_required: "A title is required", saved: "Saved", added: "Added",
+    wrap_fail: "Couldn't wrap it — ", unwrap_fail: "Couldn't unwrap it — ",
+    err_bad_response: "Server sent a bad response", err_server: "Server error ",
+    err_token_rejected: "GitHub rejected the token. It was cleared — you'll be asked again. Check it has Contents: Read and write.",
+    err_read: "Could not read wishes.csv (", err_write: "GitHub write failed (", err_load: "Could not load wishes.csv (",
+    srv_already: "Already wrapped by someone else", srv_notfound: "Wish not found",
+    srv_unauth: "Unauthorized", srv_notconf: "Server not configured",
+  },
+};
+let lang = localStorage.getItem("wl_lang");
+if (lang !== "da" && lang !== "en") lang = "da";
+function t(key, params) {
+  let s = (STRINGS[lang] && STRINGS[lang][key]) || STRINGS.da[key] || key;
+  if (params) for (const k in params) s = s.replace("{" + k + "}", params[k]);
+  return s;
+}
+// The Worker replies in English; map the messages a family member might see to the chosen language.
+const SERVER_ERR = {
+  "Already wrapped by someone else": "srv_already",
+  "Wish not found": "srv_notfound",
+  "Unauthorized": "srv_unauth",
+  "Server not configured": "srv_notconf",
+};
+function serverErr(msg) { return SERVER_ERR[msg] ? t(SERVER_ERR[msg]) : msg; }
+
+function applyStaticI18n() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => el.setAttribute("placeholder", t(el.dataset.i18nPh)));
+  document.querySelectorAll("[data-i18n-aria]").forEach(el => el.setAttribute("aria-label", t(el.dataset.i18nAria)));
+  document.querySelectorAll("[data-i18n-title]").forEach(el => el.setAttribute("title", t(el.dataset.i18nTitle)));
+  document.querySelectorAll("[data-i18n-html]").forEach(el => el.innerHTML = t(el.dataset.i18nHtml));
+  // language pill active state
+  document.querySelectorAll("#lang-toggle span").forEach(s => s.classList.toggle("on", s.dataset.lang === lang));
+}
+function setLang(next) {
+  lang = (next === "en") ? "en" : "da";
+  localStorage.setItem("wl_lang", lang);
+  applyStaticI18n();
+  buildCatChips();   // rebuild so the "All" chip label follows the language
+  render();
+}
 
 /* ============================================================
    State
@@ -483,7 +622,6 @@ function parseCSV(text) {
   return records.slice(1).map(vals => {
     const obj = {};
     headers.forEach((h, i) => obj[h] = (vals[i] != null ? vals[i] : "").trim());
-    // ensure every expected column exists
     COLUMNS.forEach(c => { if (!(c in obj)) obj[c] = ""; });
     return obj;
   });
@@ -519,7 +657,7 @@ async function fetchWishesText() {
     }
   } catch (e) { console.warn("Contents API read failed, falling back:", e); }
   const res = await fetch(`${CSV_FALLBACK}?t=${Date.now()}`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Could not load wishes.csv (" + res.status + ")");
+  if (!res.ok) throw new Error(t("err_load") + res.status + ")");
   return await res.text();
 }
 
@@ -536,7 +674,7 @@ async function load() {
   } catch (e) {
     console.error(e);
     document.getElementById("status").innerHTML =
-      '<span class="big">😕</span>Could not load the wishlist.<br>' + escapeHtml(e.message);
+      '<span class="big">😕</span>' + t("load_error") + '<br>' + escapeHtml(e.message);
     document.getElementById("status").hidden = false;
     document.getElementById("grid").hidden = true;
   }
@@ -552,8 +690,8 @@ async function reserve(id, action, force) {
     body: JSON.stringify({ id, action, device: DEVICE, force: !!force })
   });
   let data = {};
-  try { data = await res.json(); } catch (_) { throw new Error("Server sent a bad response"); }
-  if (!res.ok || !data.ok) throw new Error(data.error || ("Server error " + res.status));
+  try { data = await res.json(); } catch (_) { throw new Error(t("err_bad_response")); }
+  if (!res.ok || !data.ok) throw new Error(serverErr(data.error) || (t("err_server") + res.status));
   return data; // { ok, reserved, reserved_by, reserved_at }
 }
 
@@ -568,7 +706,7 @@ async function doWrap(id) {
     applyServer(w, d); render();
   } catch (e) {
     restore(w, prev); render();
-    toast("Couldn't wrap it — " + e.message);
+    toast(t("wrap_fail") + e.message);
   }
 }
 
@@ -582,7 +720,7 @@ async function doUnwrap(id, force) {
     applyServer(w, d); render();
   } catch (e) {
     restore(w, prev); render();
-    toast("Couldn't unwrap it — " + e.message);
+    toast(t("unwrap_fail") + e.message);
   }
 }
 function snapshot(w)   { return { reserved: w.reserved, reserved_by: w.reserved_by, reserved_at: w.reserved_at }; }
@@ -608,9 +746,9 @@ function promptToken() {
   });
 }
 function saveToken() {
-  const t = document.getElementById("token-input").value.trim();
-  if (!t) return;
-  GH_TOKEN = t; localStorage.setItem("wl_gh_token", t);
+  const tk = document.getElementById("token-input").value.trim();
+  if (!tk) return;
+  GH_TOKEN = tk; localStorage.setItem("wl_gh_token", tk);
   document.getElementById("token-modal").classList.remove("open");
   if (tokenResolve) { tokenResolve(true); tokenResolve = null; }
 }
@@ -627,9 +765,9 @@ async function ownerWrite(mutate, message, attempt = 0) {
   });
   if (meta.status === 401 || meta.status === 403) {
     GH_TOKEN = ""; localStorage.removeItem("wl_gh_token");
-    throw new Error("GitHub rejected the token. It was cleared — you'll be asked again. Check it has Contents: Read and write.");
+    throw new Error(t("err_token_rejected"));
   }
-  if (!meta.ok) throw new Error("Could not read wishes.csv (" + meta.status + ")");
+  if (!meta.ok) throw new Error(t("err_read") + meta.status + ")");
   const j = await meta.json();
   const sha = j.sha;
   const remoteRows = parseCSV(b64decodeUtf8(j.content)).filter(r => r.id);
@@ -643,7 +781,7 @@ async function ownerWrite(mutate, message, attempt = 0) {
   if (!res.ok) {
     if (res.status === 409 && attempt === 0) return ownerWrite(mutate, message, 1); // sha raced: refetch + retry
     const err = await res.json().catch(() => ({}));
-    throw new Error("GitHub write failed (" + res.status + ")" + (err.message ? ": " + err.message : ""));
+    throw new Error(t("err_write") + res.status + ")" + (err.message ? ": " + err.message : ""));
   }
   return true;
 }
@@ -689,7 +827,7 @@ function buildCatChips() {
   const host = document.getElementById("cat-chips");
   const cats = categories();
   host.innerHTML =
-    `<button class="chip" data-cat="all" aria-pressed="${ui.cat === "all"}">All</button>` +
+    `<button class="chip" data-cat="all" aria-pressed="${ui.cat === "all"}">${escapeHtml(t("cat_all"))}</button>` +
     cats.map(c => `<button class="chip" data-cat="${escapeHtml(c)}" aria-pressed="${ui.cat === c}">${escapeHtml(c)}</button>`).join("");
   // category datalist for the owner form
   document.getElementById("cat-list").innerHTML = cats.map(c => `<option value="${escapeHtml(c)}">`).join("");
@@ -720,7 +858,8 @@ function prioDots(p) {
   const n = Math.max(0, Math.min(3, parseInt(p, 10) || 0));
   let s = "";
   for (let i = 1; i <= 3; i++) s += `<span class="dot ${i <= n ? "on" : ""}"></span>`;
-  return `<span class="prio" title="Priority ${n} of 3" aria-label="Priority ${n} of 3">${s}</span>`;
+  const label = t("prio", { n });
+  return `<span class="prio" title="${label}" aria-label="${label}">${s}</span>`;
 }
 
 function cardHtml(w, animClass) {
@@ -733,8 +872,8 @@ function cardHtml(w, animClass) {
   if (wrapped) {
     const mine = w.reserved_by && w.reserved_by === DEVICE;
     const control = mine
-      ? `<button class="unwrap" onclick="doUnwrap('${escapeHtml(w.id)}', false)">Unwrap</button>`
-      : `<button class="unwrap-force" onclick="doUnwrap('${escapeHtml(w.id)}', true)">Not you? Unwrap anyway</button>`;
+      ? `<button class="unwrap" onclick="doUnwrap('${escapeHtml(w.id)}', false)">${escapeHtml(t("unwrap"))}</button>`
+      : `<button class="unwrap-force" onclick="doUnwrap('${escapeHtml(w.id)}', true)">${escapeHtml(t("unwrap_force"))}</button>`;
     return `<article class="card wrapped ${animClass || ""}" data-id="${escapeHtml(w.id)}">
       ${thumb}
       <div class="wrap-paper"></div>
@@ -744,8 +883,8 @@ function cardHtml(w, animClass) {
       <div class="tag">
         <div class="string"></div>
         <div class="tag-card">
-          <div class="lbl">🎀 Wrapped</div>
-          <div class="who">${mine ? "by you" : "reserved"}</div>
+          <div class="lbl">${escapeHtml(t("wrapped"))}</div>
+          <div class="who">${mine ? escapeHtml(t("by_you")) : escapeHtml(t("reserved"))}</div>
           ${control}
         </div>
       </div>
@@ -754,10 +893,10 @@ function cardHtml(w, animClass) {
   }
 
   const shop = (w.url || "").trim()
-    ? `<a class="shop" href="${escapeHtml(w.url)}" target="_blank" rel="noopener noreferrer">Shop ↗</a>` : "";
+    ? `<a class="shop" href="${escapeHtml(w.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(t("shop"))}</a>` : "";
   const wrapBtn = OWNER
-    ? `<button class="btn btn-accent wrap-btn" onclick="openEdit('${escapeHtml(w.id)}')">Edit</button>`
-    : `<button class="btn btn-accent wrap-btn" onclick="doWrap('${escapeHtml(w.id)}')">🎁 Wrap it</button>`;
+    ? `<button class="btn btn-accent wrap-btn" onclick="openEdit('${escapeHtml(w.id)}')">${escapeHtml(t("edit"))}</button>`
+    : `<button class="btn btn-accent wrap-btn" onclick="doWrap('${escapeHtml(w.id)}')">${escapeHtml(t("wrap_it"))}</button>`;
 
   return `<article class="card ${animClass || ""}" data-id="${escapeHtml(w.id)}">
     ${thumb}
@@ -785,14 +924,14 @@ function render(animId, animKind) {
   const status = document.getElementById("status");
   const list = getFiltered();
   document.getElementById("brand-sub").textContent =
-    OWNER ? `${OWNER_NAME}'s list · owner view` : `${OWNER_NAME}'s wishes`;
+    OWNER ? t("brand_sub_owner", { name: OWNER_NAME }) : t("brand_sub_family", { name: OWNER_NAME });
 
   if (!wishes.length) {
-    status.innerHTML = '<span class="big">🎁</span>No wishes yet' + (OWNER ? " — tap “Add wish” to start." : ".");
+    status.innerHTML = '<span class="big">🎁</span>' + escapeHtml(OWNER ? t("empty_owner") : t("empty_family"));
     status.hidden = false; grid.hidden = true; return;
   }
   if (!list.length) {
-    status.innerHTML = '<span class="big">🔍</span>Nothing matches those filters.';
+    status.innerHTML = '<span class="big">🔍</span>' + escapeHtml(t("no_match"));
     status.hidden = false; grid.hidden = true; return;
   }
   status.hidden = true; grid.hidden = false;
@@ -807,8 +946,8 @@ function render(animId, animKind) {
    ============================================================ */
 function openAdd() {
   editingId = null;
-  document.getElementById("wish-modal-title").textContent = "Add wish";
-  document.getElementById("wish-save").textContent = "Add";
+  document.getElementById("wish-modal-title").textContent = t("add_wish");
+  document.getElementById("wish-save").textContent = t("add");
   setForm({ currency: "DKK", priority: "2" });
   document.getElementById("wish-hint").textContent = "";
   document.getElementById("wish-modal").classList.add("open");
@@ -817,8 +956,8 @@ function openAdd() {
 function openEdit(id) {
   const w = wishes.find(x => x.id === id); if (!w) return;
   editingId = id;
-  document.getElementById("wish-modal-title").textContent = "Edit wish";
-  document.getElementById("wish-save").textContent = "Save";
+  document.getElementById("wish-modal-title").textContent = t("edit_wish");
+  document.getElementById("wish-save").textContent = t("save");
   setForm(w);
   document.getElementById("wish-hint").textContent = "id: " + id;
   document.getElementById("wish-modal").classList.add("open");
@@ -849,9 +988,9 @@ function closeModal(id) { document.getElementById(id).classList.remove("open"); 
 
 async function saveWish() {
   const form = readForm();
-  if (!form.title) { toast("A title is required"); return; }
+  if (!form.title) { toast(t("title_required")); return; }
   const btn = document.getElementById("wish-save");
-  btn.disabled = true; const label = btn.textContent; btn.textContent = "Saving…";
+  btn.disabled = true; const label = btn.textContent; btn.textContent = t("saving");
   try {
     if (editingId) {
       await ownerWrite(rows => rows.map(r => {
@@ -869,7 +1008,7 @@ async function saveWish() {
     }
     closeModal("wish-modal");
     await load();
-    toast(editingId ? "Saved" : "Added");
+    toast(editingId ? t("saved") : t("added"));
   } catch (e) {
     toast(e.message);
   } finally {
@@ -882,10 +1021,10 @@ async function saveWish() {
    ============================================================ */
 let toastTimer = null;
 function toast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg; t.classList.add("show");
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
 }
 
 /* ============================================================
@@ -893,6 +1032,9 @@ function toast(msg) {
    ============================================================ */
 function setup() {
   if (OWNER) { document.body.classList.add("owner"); document.getElementById("owner-badge").style.display = ""; }
+  applyStaticI18n();
+
+  document.getElementById("lang-toggle").addEventListener("click", () => setLang(lang === "da" ? "en" : "da"));
 
   const search = document.getElementById("search");
   const clear = document.getElementById("search-clear");
