@@ -1,0 +1,8 @@
+name = "wishlistr"
+main = "src/index.js"
+compatibility_date = "2025-10-01"
+
+# Secrets are NOT stored here. Set them in the Cloudflare dashboard
+# (Workers & Pages -> wishlistr -> Settings -> Variables and Secrets):
+#   GITHUB_TOKEN  - fine-grained PAT, Contents: Read and write on wonderdk/wishlistr
+#   WISHLIST_KEY  - must match WISHLIST_KEY in ../index.html

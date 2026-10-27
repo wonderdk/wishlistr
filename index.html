@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Ønskeliste</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%81%3C/text%3E%3C/svg%3E">
+<!-- The only external resource: one Google Font (a stylesheet link, not a script). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500..700;1,9..144,500..600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Craft-paper tones, warm and tactile. One strong accent for ribbons. */
+    --paper:      #f3e9d7;
+    --paper-2:    #ede1cb;
+    --card:       #fbf5e9;
+    --card-edge:  #e3d4b8;
+    --ink:        #3a3024;
+    --ink-soft:   #6f6250;
+    --muted:      #988a70;
+    --accent:     #cf4b32;   /* ribbon red */
+    --accent-ink: #a33a26;
+    --accent-2:   #e9a23b;   /* warm gold, used sparingly */
+    --ok:         #4b7a4a;
+    --shadow:     0 6px 20px rgba(58,48,36,.14), 0 1px 2px rgba(58,48,36,.10);
+    --radius:     18px;
+    --wrap-a:     #d8573f;
+    --wrap-b:     #c6452f;
+    --ribbon:     #f4d9a0;
+    --ribbon-edge:#d9b36b;
+    --tag:        #fbf5e9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:    #1b1813;
+      --paper-2:  #221d16;
+      --card:     #2a241a;
+      --card-edge:#3a3124;
+      --ink:      #efe4d1;
+      --ink-soft: #c3b69d;
+      --muted:    #9a8c72;
+      --accent:   #e86a4f;
+      --accent-ink:#f2a089;
+      --accent-2: #eab457;
+      --ok:       #7fb07c;
+      --shadow:   0 8px 26px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.4);
+      --wrap-a:   #c9553f;
+      --wrap-b:   #a83f2e;
+      --ribbon:   #e9c784;
+      --ribbon-edge:#c79f57;
+      --tag:      #2a241a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#1b1813;--paper-2:#221d16;--card:#2a241a;--card-edge:#3a3124;--ink:#efe4d1;
+    --ink-soft:#c3b69d;--muted:#9a8c72;--accent:#e86a4f;--accent-ink:#f2a089;--accent-2:#eab457;
+    --ok:#7fb07c;--shadow:0 8px 26px rgba(0,0,0,.45),0 1px 2px rgba(0,0,0,.4);
+    --wrap-a:#c9553f;--wrap-b:#a83f2e;--ribbon:#e9c784;--ribbon-edge:#c79f57;--tag:#2a241a;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: env(safe-area-inset-bottom);
+    min-height: 100dvh;
+  }
+  h1, h2, .brand-name, .card-title { font-family: "Fraunces", Georgia, serif; }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: saturate(1.4) blur(8px);
+    border-bottom: 1px solid var(--card-edge);
+    padding: calc(env(safe-area-inset-top) + 10px) 14px 10px;
+  }
+  .topbar-row { display: flex; align-items: center; gap: 10px; }
+  .brand { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .brand .gift { font-size: 22px; line-height: 1; }
+  .brand-name { font-size: 20px; font-weight: 600; letter-spacing: .2px; white-space: nowrap; }
+  .brand-sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .spacer { flex: 1; }
+  .owner-badge {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--accent-ink); background: color-mix(in srgb, var(--accent) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    padding: 3px 8px; border-radius: 999px;
+  }
+  .search-wrap { position: relative; margin-top: 10px; }
+  .search-wrap input {
+    width: 100%; font-size: 16px; color: var(--ink);
+    background: var(--card); border: 1px solid var(--card-edge); border-radius: 12px;
+    padding: 11px 36px 11px 38px; outline: none;
+  }
+  .search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+  .search-wrap .mag { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; }
+  .search-wrap .clear {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    border: none; background: transparent; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px; display: none;
+  }
+
+  .chip-rows { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .chips {
+    display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch; padding-bottom: 2px;
+  }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: 0 0 auto; border: 1px solid var(--card-edge); background: var(--card);
+    color: var(--ink-soft); font-size: 13.5px; font-weight: 600;
+    padding: 7px 13px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .chip[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .chip.toggle[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); }
+
+  .toolbar { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .toolbar label { font-size: 12.5px; color: var(--muted); }
+  select.sort {
+    font-size: 13.5px; color: var(--ink); background: var(--card);
+    border: 1px solid var(--card-edge); border-radius: 10px; padding: 7px 10px; cursor: pointer;
+  }
+  .btn {
+    font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+    border-radius: 11px; padding: 9px 14px; border: 1px solid transparent;
+  }
+  .btn-accent { background: var(--accent); color: #fff; }
+  .btn-accent:active { transform: translateY(1px); }
+  .btn-ghost { background: var(--card); color: var(--ink); border-color: var(--card-edge); }
+
+  /* ---------- Grid ---------- */
+  main { padding: 16px 14px 48px; max-width: 1100px; margin: 0 auto; }
+  .status { text-align: center; color: var(--muted); padding: 48px 16px; }
+  .status .big { font-size: 34px; display: block; margin-bottom: 10px; }
+  .grid {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  }
+
+  .card {
+    position: relative; background: var(--card); border: 1px solid var(--card-edge);
+    border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; isolation: isolate;
+    animation: cardIn .3s ease both;
+  }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .thumb {
+    aspect-ratio: 4 / 3; background: var(--paper-2) center/cover no-repeat;
+    display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 30px;
+  }
+  .card-main { padding: 12px 13px 13px; display: flex; flex-direction: column; gap: 7px; flex: 1; }
+  .card-top { display: flex; align-items: flex-start; gap: 8px; }
+  .card-title { font-size: 17px; font-weight: 600; line-height: 1.2; margin: 0; flex: 1; }
+  .prio { display: inline-flex; gap: 3px; margin-top: 3px; flex: 0 0 auto; }
+  .prio .dot { width: 8px; height: 8px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 22%, var(--card-edge)); }
+  .prio .dot.on { background: var(--accent); }
+  .desc { font-size: 13.5px; color: var(--ink-soft); margin: 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+  .price { font-size: 16px; font-weight: 700; }
+  .cat { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .card-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .shop {
+    flex: 0 0 auto; text-decoration: none; color: var(--ink-soft); font-size: 13px; font-weight: 600;
+    border: 1px solid var(--card-edge); border-radius: 10px; padding: 9px 11px; background: var(--paper-2);
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .wrap-btn { flex: 1; }
+  .wrap-btn.wrapped-style { background: var(--card); color: var(--muted); border: 1px dashed var(--card-edge); }
+
+  /* ---------- Wrapped present ---------- */
+  .card.wrapped { }
+  .card.wrapped .thumb img, .card.wrapped .thumb { filter: saturate(.6); }
+  .wrap-paper {
+    position: absolute; inset: 0; z-index: 5; pointer-events: none;
+    background:
+      repeating-linear-gradient(45deg,
+        var(--wrap-a) 0 15px, var(--wrap-b) 15px 30px);
+    opacity: .96;
+  }
+  .wrap-paper::after { /* subtle dots over the stripes */
+    content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,.35) 1.5px, transparent 1.6px);
+    background-size: 18px 18px; opacity: .5;
+  }
+  .ribbon { position: absolute; z-index: 6; background: var(--ribbon); box-shadow: inset 0 0 0 1px var(--ribbon-edge); pointer-events: none; }
+  .ribbon-v { top: 0; bottom: 0; left: 50%; width: 30px; transform: translateX(-50%); }
+  .ribbon-h { left: 0; right: 0; top: 42%; height: 30px; transform: translateY(-50%); }
+  .bow {
+    position: absolute; z-index: 7; left: 50%; top: 42%; transform: translate(-50%, -50%);
+    width: 46px; height: 46px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, var(--ribbon) 40%, var(--ribbon-edge) 42% 46%, var(--ribbon) 48%);
+    box-shadow: 0 2px 6px rgba(0,0,0,.25); pointer-events: none;
+  }
+  .tag {
+    position: absolute; z-index: 9; right: 12px; top: 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .tag .string { width: 1px; height: 14px; background: rgba(0,0,0,.35); }
+  .tag-card {
+    background: var(--tag); color: var(--ink); border: 1px solid var(--card-edge);
+    border-radius: 8px; padding: 6px 10px; box-shadow: var(--shadow);
+    transform: rotate(-4deg); text-align: center; max-width: 150px;
+  }
+  .tag-card .lbl { font-family: "Fraunces", serif; font-weight: 600; font-size: 13px; color: var(--accent-ink); }
+  .tag-card .who { font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+  .tag-card .unwrap {
+    margin-top: 6px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+    background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 5px 10px; width: 100%;
+  }
+  .tag-card .unwrap-force {
+    display: inline-block; margin-top: 5px; font-size: 11px; color: var(--muted);
+    text-decoration: underline; cursor: pointer; background: none; border: none;
+  }
+  .card.wrapped .card-title-wrapped {
+    position: absolute; z-index: 9; left: 10px; right: 10px; bottom: 10px;
+    color: #fff; font-family: "Fraunces", serif; font-weight: 600; font-size: 15px;
+    text-shadow: 0 1px 4px rgba(0,0,0,.5); line-height: 1.2;
+  }
+
+  /* Wrap/unwrap animation (<=400ms); disabled under reduced motion. */
+  .card.wrapping .wrap-paper { animation: paperSweep .34s ease both; }
+  .card.wrapping .ribbon, .card.wrapping .bow, .card.wrapping .tag { animation: ribbonPop .3s .12s ease both; }
+  .card.wrapping { animation: wrapPop .34s ease; }
+  @keyframes paperSweep { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes ribbonPop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; } }
+  @keyframes wrapPop { 0% { transform: scale(1); } 45% { transform: scale(.965); } 100% { transform: scale(1); } }
+  .card.unwrapping .wrap-paper { animation: paperLift .3s ease both; }
+  @keyframes paperLift { from { clip-path: inset(0 0 0 0); opacity: 1; } to { clip-path: inset(0 0 100% 0); opacity: 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  }
+
+  /* ---------- Modal ---------- */
+  .modal {
+    position: fixed; inset: 0; z-index: 100; display: none;
+    align-items: flex-end; justify-content: center;
+    background: rgba(28,24,19,.5); backdrop-filter: blur(2px);
+  }
+  .modal.open { display: flex; }
+  .sheet {
+    background: var(--paper); width: 100%; max-width: 520px;
+    border-radius: 20px 20px 0 0; border: 1px solid var(--card-edge); border-bottom: none;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    max-height: 92dvh; overflow-y: auto; box-shadow: 0 -10px 40px rgba(0,0,0,.3);
+    animation: sheetUp .25s ease both;
+  }
+  @keyframes sheetUp { from { transform: translateY(30px); opacity: .6; } to { transform: none; opacity: 1; } }
+  .sheet h2 { margin: 0 0 14px; font-size: 20px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; }
+  .field input, .field textarea, .field select {
+    width: 100%; font: inherit; font-size: 16px; color: var(--ink);
+    background: var(--card); border: 1px solid var(--card-edge); border-radius: 11px; padding: 10px 12px; outline: none;
+  }
+  .field textarea { min-height: 64px; resize: vertical; }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+  .sheet-actions { display: flex; gap: 10px; margin-top: 6px; }
+  .sheet-actions .btn { flex: 1; }
+  .hint { font-size: 12px; color: var(--muted); margin: 2px 0 14px; }
+
+  /* ---------- Toast ---------- */
+  #toast {
+    position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+    z-index: 200; background: var(--ink); color: var(--paper); font-size: 14px; font-weight: 600;
+    padding: 12px 16px; border-radius: 12px; box-shadow: var(--shadow); max-width: 90vw; text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Floating owner add button */
+  .fab {
+    position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 50;
+    background: var(--accent); color: #fff; border: none; border-radius: 999px;
+    font: inherit; font-weight: 800; font-size: 15px; padding: 14px 18px; box-shadow: var(--shadow); cursor: pointer;
+    display: none;
+  }
+  body.owner .fab { display: inline-flex; align-items: center; gap: 7px; }
+
+  @media (min-width: 640px) {
+    .topbar { padding-left: 20px; padding-right: 20px; }
+    .brand-name { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-row">
+    <div class="brand">
+      <span class="gift" aria-hidden="true">🎁</span>
+      <div style="min-width:0">
+        <div class="brand-name">Ønskeliste</div>
+        <div class="brand-sub" id="brand-sub"></div>
+      </div>
+    </div>
+    <span class="spacer"></span>
+    <span class="owner-badge" id="owner-badge" style="display:none">Owner</span>
+  </div>
+
+  <div class="search-wrap">
+    <span class="mag" aria-hidden="true">🔍</span>
+    <input id="search" type="search" inputmode="search" placeholder="Search wishes…" autocomplete="off" aria-label="Search wishes">
+    <button class="clear" id="search-clear" aria-label="Clear search">✕</button>
+  </div>
+
+  <div class="chip-rows">
+    <div class="chips" id="cat-chips" role="group" aria-label="Category"></div>
+    <div class="chips" id="price-chips" role="group" aria-label="Price">
+      <button class="chip" data-price="all" aria-pressed="true">All prices</button>
+      <button class="chip" data-price="lo" aria-pressed="false">Under 200</button>
+      <button class="chip" data-price="mid" aria-pressed="false">200–500</button>
+      <button class="chip" data-price="hi" aria-pressed="false">Over 500</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <label for="sort">Sort</label>
+    <select class="sort" id="sort" aria-label="Sort">
+      <option value="wanted">Most wanted</option>
+      <option value="price-asc">Price: low to high</option>
+      <option value="newest">Newest</option>
+    </select>
+    <span class="spacer"></span>
+    <button class="chip toggle" id="show-wrapped" aria-pressed="true" title="Show wrapped wishes">🎀 Show wrapped</button>
+  </div>
+</header>
+
+<main>
+  <div class="status" id="status"><span class="big">🎁</span>Loading wishes…</div>
+  <div class="grid" id="grid" hidden></div>
+</main>
+
+<button class="fab" id="fab" onclick="openAdd()">＋ Add wish</button>
+
+<!-- Add / Edit wish (owner only) -->
+<div class="modal" id="wish-modal">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="wish-modal-title">
+    <h2 id="wish-modal-title">Add wish</h2>
+    <div class="field">
+      <label for="f-title">Title</label>
+      <input id="f-title" type="text" placeholder="What do you want?">
+    </div>
+    <div class="field">
+      <label for="f-desc">Short description</label>
+      <textarea id="f-desc" placeholder="A line or two (optional)"></textarea>
+    </div>
+    <div class="field">
+      <label for="f-url">Shop link</label>
+      <input id="f-url" type="url" inputmode="url" placeholder="https://…">
+    </div>
+    <div class="field">
+      <label for="f-image">Image URL</label>
+      <input id="f-image" type="url" inputmode="url" placeholder="https://… (optional)">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="f-price">Price</label>
+        <input id="f-price" type="number" inputmode="decimal" min="0" step="1" placeholder="0">
+      </div>
+      <div class="field">
+        <label for="f-currency">Currency</label>
+        <input id="f-currency" type="text" value="DKK" maxlength="4">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="f-priority">Priority (1–3)</label>
+        <select id="f-priority">
+          <option value="3">3 — most wanted</option>
+          <option value="2" selected>2 — would love</option>
+          <option value="1">1 — nice to have</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-category">Category</label>
+        <input id="f-category" type="text" placeholder="e.g. Books" list="cat-list">
+        <datalist id="cat-list"></datalist>
+      </div>
+    </div>
+    <p class="hint" id="wish-hint"></p>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" onclick="closeModal('wish-modal')">Cancel</button>
+      <button class="btn btn-accent" id="wish-save" onclick="saveWish()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- GitHub token (owner only) -->
+<div class="modal" id="token-modal">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="token-modal-title">
+    <h2 id="token-modal-title">GitHub token</h2>
+    <p class="hint">Paste a fine-grained personal access token with <strong>Contents: Read and write</strong> on the <strong>wishlistr</strong> repo. It is stored only in this browser, never sent anywhere except GitHub.</p>
+    <div class="field">
+      <label for="token-input">Token</label>
+      <input id="token-input" type="password" autocomplete="off" placeholder="github_pat_…">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" onclick="cancelToken()">Cancel</button>
+      <button class="btn btn-accent" onclick="saveToken()">Save token</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   Configuration
+   ============================================================ */
+const OWNER_NAME = "Steven";                 // <-- change to the wishlist owner's name
+const REPO       = "wonderdk/wishlistr";
+const BRANCH     = "main";
+const CSV_PATH   = "wishes.csv";
+const GITHUB_API = `https://api.github.com/repos/${REPO}/contents/${CSV_PATH}`;
+// Relative fallback works under the /wishlistr/ Pages subpath. May be a cached Pages build.
+const CSV_FALLBACK = CSV_PATH;
+
+// Cloudflare Worker that performs the family write path (holds the GitHub token server-side).
+const RESERVE_ENDPOINT = "https://wishlistr.YOUR_SUBDOMAIN.workers.dev";  // <-- set after you deploy the Worker
+// NOTE: this key is embedded in a PUBLIC page, so it is not a real secret — it is a soft gate
+// that keeps casual/bot traffic off the Worker. The Worker checks it against its WISHLIST_KEY secret.
+const WISHLIST_KEY = "YRnIflhWjOPdpcZD8wvGQiaV6L2eCMb5gEUBSF3J";
+
+const COLUMNS = ["id","title","description","url","image","price","currency","priority","category","reserved","reserved_by","reserved_at"];
+const OWNER_EDITABLE = ["title","description","url","image","price","currency","priority","category"];
+
+/* ============================================================
+   State
+   ============================================================ */
+const OWNER = new URLSearchParams(location.search).get("owner") === "1";
+let GH_TOKEN = localStorage.getItem("wl_gh_token") || "";
+let wishes = [];
+let ui = { q: "", cat: "all", price: "all", sort: "wanted", showWrapped: true };
+let editingId = null;
+let tokenResolve = null;
+
+const DEVICE = (() => {
+  let d = localStorage.getItem("wl_device");
+  if (!d) {
+    d = "d_" + (crypto.randomUUID ? crypto.randomUUID()
+                                  : Math.random().toString(36).slice(2) + Date.now().toString(36));
+    localStorage.setItem("wl_device", d);
+  }
+  return d;
+})();
+
+/* ============================================================
+   CSV — RFC 4180 parser (reused from bekindrewind): handles quoted
+   commas, quoted newlines and "" escapes, strips BOM, keeps short rows.
+   ============================================================ */
+function parseCSV(text) {
+  const records = [];
+  let row = [], cur = "", inQ = false;
+  const t = (text || "").replace(/^﻿/, "");
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (inQ) {
+      if (c === '"') { if (t[i+1] === '"') { cur += '"'; i++; } else inQ = false; }
+      else cur += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ",") { row.push(cur); cur = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && t[i+1] === "\n") i++;
+      row.push(cur); cur = "";
+      if (row.some(v => v !== "")) records.push(row);
+      row = [];
+    } else cur += c;
+  }
+  row.push(cur);
+  if (row.some(v => v !== "")) records.push(row);
+  if (!records.length) return [];
+  const headers = records[0].map(h => h.trim());
+  return records.slice(1).map(vals => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = (vals[i] != null ? vals[i] : "").trim());
+    // ensure every expected column exists
+    COLUMNS.forEach(c => { if (!(c in obj)) obj[c] = ""; });
+    return obj;
+  });
+}
+// Minimal, deterministic quoting — index.html and the Worker produce identical output
+// for identical data, so re-writing never churns unrelated rows.
+function csvCell(v) {
+  v = (v == null ? "" : String(v));
+  return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+}
+function buildCsv(rows) {
+  const header = COLUMNS.join(",");
+  const body = rows.map(r => COLUMNS.map(c => csvCell(r[c])).join(",")).join("\n");
+  return header + "\n" + body + (body ? "\n" : "");
+}
+// UTF-8 safe base64 (for the GitHub Contents API)
+function b64decodeUtf8(b64) { return decodeURIComponent(escape(atob((b64 || "").replace(/\n/g, "")))); }
+function b64encodeUtf8(str) { return btoa(unescape(encodeURIComponent(str))); }
+
+/* ============================================================
+   Reading — always through the Contents API so family sees the
+   current state immediately, not a cached Pages build. Falls back
+   to the relative file if the API fails or is rate limited.
+   ============================================================ */
+async function fetchWishesText() {
+  try {
+    const headers = { "Accept": "application/vnd.github+json" };
+    if (OWNER && GH_TOKEN) headers.Authorization = `token ${GH_TOKEN}`;
+    const res = await fetch(`${GITHUB_API}?ref=${BRANCH}`, { headers, cache: "no-store" });
+    if (res.ok) {
+      const j = await res.json();
+      if (j && j.content) return b64decodeUtf8(j.content);
+    }
+  } catch (e) { console.warn("Contents API read failed, falling back:", e); }
+  const res = await fetch(`${CSV_FALLBACK}?t=${Date.now()}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Could not load wishes.csv (" + res.status + ")");
+  return await res.text();
+}
+
+async function load() {
+  try {
+    const text = await fetchWishesText();
+    let rows = parseCSV(text).filter(r => r.id);
+    // Owner must NOT see what is wrapped. The CSV is public, so this is honour-system
+    // only — we simply never read the reservation columns into the owner's view.
+    if (OWNER) rows = rows.map(r => ({ ...r, reserved: "0", reserved_by: "", reserved_at: "" }));
+    wishes = rows;
+    buildCatChips();
+    render();
+  } catch (e) {
+    console.error(e);
+    document.getElementById("status").innerHTML =
+      '<span class="big">😕</span>Could not load the wishlist.<br>' + escapeHtml(e.message);
+    document.getElementById("status").hidden = false;
+    document.getElementById("grid").hidden = true;
+  }
+}
+
+/* ============================================================
+   Family write path — POST to the Worker (no token in the page).
+   ============================================================ */
+async function reserve(id, action, force) {
+  const res = await fetch(RESERVE_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Wishlist-Key": WISHLIST_KEY },
+    body: JSON.stringify({ id, action, device: DEVICE, force: !!force })
+  });
+  let data = {};
+  try { data = await res.json(); } catch (_) { throw new Error("Server sent a bad response"); }
+  if (!res.ok || !data.ok) throw new Error(data.error || ("Server error " + res.status));
+  return data; // { ok, reserved, reserved_by, reserved_at }
+}
+
+async function doWrap(id) {
+  const w = wishes.find(x => x.id === id); if (!w) return;
+  const prev = snapshot(w);
+  // optimistic
+  w.reserved = "1"; w.reserved_by = DEVICE; w.reserved_at = new Date().toISOString();
+  render(id);
+  try {
+    const d = await reserve(id, "wrap", false);
+    applyServer(w, d); render();
+  } catch (e) {
+    restore(w, prev); render();
+    toast("Couldn't wrap it — " + e.message);
+  }
+}
+
+async function doUnwrap(id, force) {
+  const w = wishes.find(x => x.id === id); if (!w) return;
+  const prev = snapshot(w);
+  w.reserved = "0"; w.reserved_by = ""; w.reserved_at = "";
+  render(id, "unwrap");
+  try {
+    const d = await reserve(id, "unwrap", !!force);
+    applyServer(w, d); render();
+  } catch (e) {
+    restore(w, prev); render();
+    toast("Couldn't unwrap it — " + e.message);
+  }
+}
+function snapshot(w)   { return { reserved: w.reserved, reserved_by: w.reserved_by, reserved_at: w.reserved_at }; }
+function restore(w, s) { w.reserved = s.reserved; w.reserved_by = s.reserved_by; w.reserved_at = s.reserved_at; }
+function applyServer(w, d) {
+  w.reserved = d.reserved ? "1" : "0";
+  w.reserved_by = d.reserved_by || "";
+  w.reserved_at = d.reserved_at || "";
+}
+
+/* ============================================================
+   Owner write path — direct Contents API. Re-reads the file right
+   before writing and preserves reserved / reserved_by / reserved_at
+   on every existing row, so owner edits never touch reservations.
+   ============================================================ */
+function promptToken() {
+  return new Promise(resolve => {
+    tokenResolve = resolve;
+    const m = document.getElementById("token-modal");
+    const inp = document.getElementById("token-input");
+    inp.value = ""; m.classList.add("open");
+    setTimeout(() => inp.focus(), 50);
+  });
+}
+function saveToken() {
+  const t = document.getElementById("token-input").value.trim();
+  if (!t) return;
+  GH_TOKEN = t; localStorage.setItem("wl_gh_token", t);
+  document.getElementById("token-modal").classList.remove("open");
+  if (tokenResolve) { tokenResolve(true); tokenResolve = null; }
+}
+function cancelToken() {
+  document.getElementById("token-modal").classList.remove("open");
+  if (tokenResolve) { tokenResolve(false); tokenResolve = null; }
+}
+
+// mutate(remoteRows) -> new rows array. Must preserve reserved* for existing rows.
+async function ownerWrite(mutate, message, attempt = 0) {
+  if (!GH_TOKEN && !(await promptToken())) return false;
+  const meta = await fetch(`${GITHUB_API}?ref=${BRANCH}`, {
+    headers: { Authorization: `token ${GH_TOKEN}` }, cache: "no-store"
+  });
+  if (meta.status === 401 || meta.status === 403) {
+    GH_TOKEN = ""; localStorage.removeItem("wl_gh_token");
+    throw new Error("GitHub rejected the token. It was cleared — you'll be asked again. Check it has Contents: Read and write.");
+  }
+  if (!meta.ok) throw new Error("Could not read wishes.csv (" + meta.status + ")");
+  const j = await meta.json();
+  const sha = j.sha;
+  const remoteRows = parseCSV(b64decodeUtf8(j.content)).filter(r => r.id);
+  const nextRows = mutate(remoteRows);
+  const csv = buildCsv(nextRows);
+  const res = await fetch(GITHUB_API, {
+    method: "PUT",
+    headers: { Authorization: `token ${GH_TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ message, content: b64encodeUtf8(csv), sha, branch: BRANCH })
+  });
+  if (!res.ok) {
+    if (res.status === 409 && attempt === 0) return ownerWrite(mutate, message, 1); // sha raced: refetch + retry
+    const err = await res.json().catch(() => ({}));
+    throw new Error("GitHub write failed (" + res.status + ")" + (err.message ? ": " + err.message : ""));
+  }
+  return true;
+}
+
+function slugify(s) {
+  return (s || "").toLowerCase()
+    .replace(/æ/g, "ae").replace(/ø/g, "o").replace(/å/g, "aa")
+    .normalize("NFKD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 40) || "wish";
+}
+function uniqueId(base, rows) {
+  const ids = new Set(rows.map(r => r.id));
+  if (!ids.has(base)) return base;
+  let n = 2; while (ids.has(base + "-" + n)) n++;
+  return base + "-" + n;
+}
+
+/* ============================================================
+   Rendering
+   ============================================================ */
+function fmtPrice(p, cur) {
+  const n = parseFloat(p);
+  if (isNaN(n)) return "";
+  try {
+    return new Intl.NumberFormat("da-DK", { style: "currency", currency: (cur || "DKK").toUpperCase(), maximumFractionDigits: 0 }).format(n);
+  } catch (_) {
+    return Math.round(n).toLocaleString("da-DK") + " " + (cur || "DKK");
+  }
+}
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+function priceBucket(p) {
+  const n = parseFloat(p); if (isNaN(n)) return "mid";
+  if (n < 200) return "lo"; if (n <= 500) return "mid"; return "hi";
+}
+function isWrapped(w) { return !OWNER && w.reserved === "1"; }
+
+function categories() {
+  return [...new Set(wishes.map(w => (w.category || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "da"));
+}
+function buildCatChips() {
+  const host = document.getElementById("cat-chips");
+  const cats = categories();
+  host.innerHTML =
+    `<button class="chip" data-cat="all" aria-pressed="${ui.cat === "all"}">All</button>` +
+    cats.map(c => `<button class="chip" data-cat="${escapeHtml(c)}" aria-pressed="${ui.cat === c}">${escapeHtml(c)}</button>`).join("");
+  // category datalist for the owner form
+  document.getElementById("cat-list").innerHTML = cats.map(c => `<option value="${escapeHtml(c)}">`).join("");
+}
+
+function getFiltered() {
+  const q = ui.q.toLowerCase();
+  let list = wishes.filter(w => {
+    if (ui.cat !== "all" && (w.category || "") !== ui.cat) return false;
+    if (ui.price !== "all" && priceBucket(w.price) !== ui.price) return false;
+    if (q && !((w.title + " " + w.description + " " + w.category).toLowerCase().includes(q))) return false;
+    if (!ui.showWrapped && isWrapped(w)) return false;
+    return true;
+  });
+  const idx = id => wishes.findIndex(w => w.id === id);
+  const cmp = {
+    "wanted":    (a, b) => (+b.priority || 0) - (+a.priority || 0) || idx(a.id) - idx(b.id),
+    "price-asc": (a, b) => (parseFloat(a.price) || Infinity) - (parseFloat(b.price) || Infinity),
+    "newest":    (a, b) => idx(b.id) - idx(a.id),   // CSV order is chronological; owner appends
+  }[ui.sort];
+  list.sort(cmp);
+  // Wrapped wishes stay visible but move to the end of the grid.
+  list.sort((a, b) => (isWrapped(a) ? 1 : 0) - (isWrapped(b) ? 1 : 0));
+  return list;
+}
+
+function prioDots(p) {
+  const n = Math.max(0, Math.min(3, parseInt(p, 10) || 0));
+  let s = "";
+  for (let i = 1; i <= 3; i++) s += `<span class="dot ${i <= n ? "on" : ""}"></span>`;
+  return `<span class="prio" title="Priority ${n} of 3" aria-label="Priority ${n} of 3">${s}</span>`;
+}
+
+function cardHtml(w, animClass) {
+  const wrapped = isWrapped(w);
+  const img = (w.image || "").trim();
+  const thumb = img
+    ? `<div class="thumb"><img src="${escapeHtml(img)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.textContent='🎁'"></div>`
+    : `<div class="thumb">🎁</div>`;
+
+  if (wrapped) {
+    const mine = w.reserved_by && w.reserved_by === DEVICE;
+    const control = mine
+      ? `<button class="unwrap" onclick="doUnwrap('${escapeHtml(w.id)}', false)">Unwrap</button>`
+      : `<button class="unwrap-force" onclick="doUnwrap('${escapeHtml(w.id)}', true)">Not you? Unwrap anyway</button>`;
+    return `<article class="card wrapped ${animClass || ""}" data-id="${escapeHtml(w.id)}">
+      ${thumb}
+      <div class="wrap-paper"></div>
+      <div class="ribbon ribbon-h"></div>
+      <div class="ribbon ribbon-v"></div>
+      <div class="bow"></div>
+      <div class="tag">
+        <div class="string"></div>
+        <div class="tag-card">
+          <div class="lbl">🎀 Wrapped</div>
+          <div class="who">${mine ? "by you" : "reserved"}</div>
+          ${control}
+        </div>
+      </div>
+      <div class="card-title-wrapped">${escapeHtml(w.title)}</div>
+    </article>`;
+  }
+
+  const shop = (w.url || "").trim()
+    ? `<a class="shop" href="${escapeHtml(w.url)}" target="_blank" rel="noopener noreferrer">Shop ↗</a>` : "";
+  const wrapBtn = OWNER
+    ? `<button class="btn btn-accent wrap-btn" onclick="openEdit('${escapeHtml(w.id)}')">Edit</button>`
+    : `<button class="btn btn-accent wrap-btn" onclick="doWrap('${escapeHtml(w.id)}')">🎁 Wrap it</button>`;
+
+  return `<article class="card ${animClass || ""}" data-id="${escapeHtml(w.id)}">
+    ${thumb}
+    <div class="card-main">
+      <div class="card-top">
+        <h3 class="card-title">${escapeHtml(w.title)}</h3>
+        ${prioDots(w.priority)}
+      </div>
+      ${w.description ? `<p class="desc">${escapeHtml(w.description)}</p>` : ""}
+      <div class="meta">
+        <span class="price">${escapeHtml(fmtPrice(w.price, w.currency))}</span>
+        ${w.category ? `<span class="cat">${escapeHtml(w.category)}</span>` : ""}
+      </div>
+      <div class="card-actions">
+        ${wrapBtn}
+        ${shop}
+      </div>
+    </div>
+  </article>`;
+}
+
+// animId/animKind: replay the wrap/unwrap animation on just-changed card
+function render(animId, animKind) {
+  const grid = document.getElementById("grid");
+  const status = document.getElementById("status");
+  const list = getFiltered();
+  document.getElementById("brand-sub").textContent =
+    OWNER ? `${OWNER_NAME}'s list · owner view` : `${OWNER_NAME}'s wishes`;
+
+  if (!wishes.length) {
+    status.innerHTML = '<span class="big">🎁</span>No wishes yet' + (OWNER ? " — tap “Add wish” to start." : ".");
+    status.hidden = false; grid.hidden = true; return;
+  }
+  if (!list.length) {
+    status.innerHTML = '<span class="big">🔍</span>Nothing matches those filters.';
+    status.hidden = false; grid.hidden = true; return;
+  }
+  status.hidden = true; grid.hidden = false;
+  grid.innerHTML = list.map(w => {
+    const anim = (w.id === animId) ? (animKind === "unwrap" ? "unwrapping" : "wrapping") : "";
+    return cardHtml(w, anim);
+  }).join("");
+}
+
+/* ============================================================
+   Owner forms
+   ============================================================ */
+function openAdd() {
+  editingId = null;
+  document.getElementById("wish-modal-title").textContent = "Add wish";
+  document.getElementById("wish-save").textContent = "Add";
+  setForm({ currency: "DKK", priority: "2" });
+  document.getElementById("wish-hint").textContent = "";
+  document.getElementById("wish-modal").classList.add("open");
+  setTimeout(() => document.getElementById("f-title").focus(), 50);
+}
+function openEdit(id) {
+  const w = wishes.find(x => x.id === id); if (!w) return;
+  editingId = id;
+  document.getElementById("wish-modal-title").textContent = "Edit wish";
+  document.getElementById("wish-save").textContent = "Save";
+  setForm(w);
+  document.getElementById("wish-hint").textContent = "id: " + id;
+  document.getElementById("wish-modal").classList.add("open");
+}
+function setForm(w) {
+  document.getElementById("f-title").value = w.title || "";
+  document.getElementById("f-desc").value = w.description || "";
+  document.getElementById("f-url").value = w.url || "";
+  document.getElementById("f-image").value = w.image || "";
+  document.getElementById("f-price").value = w.price || "";
+  document.getElementById("f-currency").value = (w.currency || "DKK").toUpperCase();
+  document.getElementById("f-priority").value = String(w.priority || "2");
+  document.getElementById("f-category").value = w.category || "";
+}
+function readForm() {
+  return {
+    title: document.getElementById("f-title").value.trim(),
+    description: document.getElementById("f-desc").value.trim(),
+    url: document.getElementById("f-url").value.trim(),
+    image: document.getElementById("f-image").value.trim(),
+    price: document.getElementById("f-price").value.trim(),
+    currency: (document.getElementById("f-currency").value.trim() || "DKK").toUpperCase(),
+    priority: document.getElementById("f-priority").value,
+    category: document.getElementById("f-category").value.trim(),
+  };
+}
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+async function saveWish() {
+  const form = readForm();
+  if (!form.title) { toast("A title is required"); return; }
+  const btn = document.getElementById("wish-save");
+  btn.disabled = true; const label = btn.textContent; btn.textContent = "Saving…";
+  try {
+    if (editingId) {
+      await ownerWrite(rows => rows.map(r => {
+        if (r.id !== editingId) return r;
+        const out = { ...r };                       // keep reserved / reserved_by / reserved_at
+        OWNER_EDITABLE.forEach(k => out[k] = form[k]);
+        return out;
+      }), `Edit wish: ${form.title}`);
+    } else {
+      await ownerWrite(rows => {
+        const id = uniqueId(slugify(form.title), rows);
+        const row = { id, ...form, reserved: "0", reserved_by: "", reserved_at: "" };
+        return rows.concat([row]);
+      }, `Add wish: ${form.title}`);
+    }
+    closeModal("wish-modal");
+    await load();
+    toast(editingId ? "Saved" : "Added");
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+let toastTimer = null;
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+}
+
+/* ============================================================
+   Wiring
+   ============================================================ */
+function setup() {
+  if (OWNER) { document.body.classList.add("owner"); document.getElementById("owner-badge").style.display = ""; }
+
+  const search = document.getElementById("search");
+  const clear = document.getElementById("search-clear");
+  search.addEventListener("input", () => {
+    ui.q = search.value; clear.style.display = search.value ? "block" : "none"; render();
+  });
+  clear.addEventListener("click", () => { search.value = ""; ui.q = ""; clear.style.display = "none"; render(); search.focus(); });
+
+  document.getElementById("cat-chips").addEventListener("click", e => {
+    const b = e.target.closest("[data-cat]"); if (!b) return;
+    ui.cat = b.dataset.cat;
+    [...e.currentTarget.children].forEach(c => c.setAttribute("aria-pressed", c === b));
+    render();
+  });
+  document.getElementById("price-chips").addEventListener("click", e => {
+    const b = e.target.closest("[data-price]"); if (!b) return;
+    ui.price = b.dataset.price;
+    [...e.currentTarget.children].forEach(c => c.setAttribute("aria-pressed", c === b));
+    render();
+  });
+  document.getElementById("sort").addEventListener("change", e => { ui.sort = e.target.value; render(); });
+  const sw = document.getElementById("show-wrapped");
+  if (OWNER) { sw.style.display = "none"; }   // nothing is wrapped in owner view
+  sw.addEventListener("click", () => {
+    ui.showWrapped = !ui.showWrapped; sw.setAttribute("aria-pressed", ui.showWrapped); render();
+  });
+
+  // Re-fetch when the tab regains focus so family always sees the latest reservations.
+  let lastFetch = Date.now();
+  const maybeRefresh = () => {
+    if (document.visibilityState !== "visible") return;
+    if (Date.now() - lastFetch < 2500) return;      // debounce
+    lastFetch = Date.now(); load();
+  };
+  document.addEventListener("visibilitychange", maybeRefresh);
+  window.addEventListener("focus", maybeRefresh);
+
+  // tap backdrop to close modals
+  document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", e => { if (e.target === m) m.classList.remove("open"); }));
+
+  load();
+}
+document.addEventListener("DOMContentLoaded", setup);
+</script>
+</body>
+</html>
