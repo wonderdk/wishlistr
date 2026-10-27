@@ -176,7 +176,6 @@
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
   .price { font-size: 16px; font-weight: 700; }
-  .cat { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
   .card-actions { display: flex; gap: 8px; margin-top: 10px; }
   .shop {
     flex: 0 0 auto; text-decoration: none; color: var(--ink-soft); font-size: 13px; font-weight: 600;
@@ -324,10 +323,6 @@
     <span class="mag" aria-hidden="true">🔍</span>
     <input id="search" type="search" inputmode="search" data-i18n-ph="search_ph" data-i18n-aria="search_aria" placeholder="Søg ønsker…" autocomplete="off" aria-label="Søg ønsker">
     <button class="clear" id="search-clear" data-i18n-aria="clear_search" aria-label="Ryd søgning">✕</button>
-  </div>
-
-  <div class="chip-rows">
-    <div class="chips" id="cat-chips" role="group" data-i18n-aria="cat_aria" aria-label="Kategori"></div>
   </div>
 
   <div class="toolbar">
@@ -568,7 +563,6 @@ function setLang(next) {
   lang = (next === "en") ? "en" : "da";
   localStorage.setItem("wl_lang", lang);
   applyStaticI18n();
-  buildCatChips();   // rebuild so the "All" chip label follows the language
   render();
 }
 
@@ -578,7 +572,7 @@ function setLang(next) {
 const OWNER = new URLSearchParams(location.search).get("owner") === "1";
 let GH_TOKEN = localStorage.getItem("wl_gh_token") || "";
 let wishes = [];
-let ui = { q: "", cat: "all", sort: "wanted", showWrapped: true };
+let ui = { q: "", sort: "wanted", showWrapped: true };
 let editingId = null;
 let tokenResolve = null;
 
@@ -668,7 +662,6 @@ async function load() {
     // only — we simply never read the reservation columns into the owner's view.
     if (OWNER) rows = rows.map(r => ({ ...r, reserved: "0", reserved_by: "", reserved_at: "" }));
     wishes = rows;
-    buildCatChips();
     render();
   } catch (e) {
     console.error(e);
@@ -815,22 +808,10 @@ function escapeHtml(s) {
 }
 function isWrapped(w) { return !OWNER && w.reserved === "1"; }
 
-function categories() {
-  return [...new Set(wishes.map(w => (w.category || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "da"));
-}
-function buildCatChips() {
-  const host = document.getElementById("cat-chips");
-  const cats = categories();
-  host.innerHTML =
-    `<button class="chip" data-cat="all" aria-pressed="${ui.cat === "all"}">${escapeHtml(t("cat_all"))}</button>` +
-    cats.map(c => `<button class="chip" data-cat="${escapeHtml(c)}" aria-pressed="${ui.cat === c}">${escapeHtml(c)}</button>`).join("");
-}
-
 function getFiltered() {
   const q = ui.q.toLowerCase();
   let list = wishes.filter(w => {
-    if (ui.cat !== "all" && (w.category || "") !== ui.cat) return false;
-    if (q && !((w.title + " " + w.description + " " + w.category).toLowerCase().includes(q))) return false;
+    if (q && !((w.title + " " + w.description).toLowerCase().includes(q))) return false;
     if (!ui.showWrapped && isWrapped(w)) return false;
     return true;
   });
@@ -900,7 +881,6 @@ function cardHtml(w, animClass) {
       ${w.description ? `<p class="desc">${escapeHtml(w.description)}</p>` : ""}
       <div class="meta">
         <span class="price">${escapeHtml(fmtPrice(w.price, w.currency))}</span>
-        ${w.category ? `<span class="cat">${escapeHtml(w.category)}</span>` : ""}
       </div>
       <div class="card-actions">
         ${wrapBtn}
@@ -1037,12 +1017,6 @@ function setup() {
   });
   clear.addEventListener("click", () => { search.value = ""; ui.q = ""; clear.style.display = "none"; render(); search.focus(); });
 
-  document.getElementById("cat-chips").addEventListener("click", e => {
-    const b = e.target.closest("[data-cat]"); if (!b) return;
-    ui.cat = b.dataset.cat;
-    [...e.currentTarget.children].forEach(c => c.setAttribute("aria-pressed", c === b));
-    render();
-  });
   document.getElementById("sort").addEventListener("change", e => { ui.sort = e.target.value; render(); });
   const sw = document.getElementById("show-wrapped");
   if (OWNER) { sw.style.display = "none"; }   // nothing is wrapped in owner view
