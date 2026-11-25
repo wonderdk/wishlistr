@@ -32,6 +32,18 @@ No logins, no tokens for family, no build step, no frameworks.
   (stored only in that browser). Owner edits
   re-read the file right before writing and **never touch** `reserved` / `reserved_by` /
   `reserved_at`. The CSV is public, so hiding wrapped state in owner view is honour-system only.
+- **Owner admin (owner view only):** two tabs — **Ønsker** (the active list) and **Modtaget**
+  (gift history) — plus these actions, each with an in-page confirm (so they work in in-app
+  browsers like Messenger):
+  - **Rediger** — edit the wish (as above).
+  - **Modtaget** — asks *"Fra hvem?"* (giver, optional), appends the gift to `received.csv`
+    (title, giver, date, price), then removes it from `wishes.csv`. It shows up under the
+    **Modtaget** tab, newest first.
+  - **Slet** — removes the wish from `wishes.csv` permanently. It is **not** logged anywhere.
+  - **Nulstil reservationer** — clears `reserved` / `reserved_by` / `reserved_at` on every row
+    at once, so the list can be reused (e.g. next year).
+
+  All of these use the owner's GitHub token, the same as editing.
 
 ## `wishes.csv` columns
 
@@ -44,6 +56,18 @@ id,title,description,url,image,price,currency,priority,category,reserved,reserve
 - `reserved` — 0 or 1
 - `reserved_by` — anonymous per-browser device id, never a name
 - `reserved_at` — ISO timestamp
+
+## `received.csv` columns
+
+Created automatically the first time you mark a gift **Modtaget**. Holds the gift history
+shown under the owner's **Modtaget** tab.
+
+```
+id,title,from,received_at,price,currency,url,image
+```
+
+- `from` — who gave it (free text, optional)
+- `received_at` — ISO timestamp of when it was marked received
 
 ---
 
@@ -116,7 +140,8 @@ way you will not see what is reserved.
 
 ```
 index.html          the whole app (family + owner views)
-wishes.csv          the data
+wishes.csv          the active wishlist
+received.csv        gift history (created on first "Modtaget"; may not exist yet)
 worker/
   src/index.js      the reservation Worker
   wrangler.toml     name, main, compatibility_date (no secrets here)
