@@ -144,6 +144,29 @@
   .btn-accent { background: var(--accent); color: #fff; }
   .btn-accent:active { transform: translateY(1px); }
   .btn-ghost { background: var(--card); color: var(--ink); border-color: var(--card-edge); }
+  .btn-danger { background: transparent; color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+  .btn-danger:active { transform: translateY(1px); }
+
+  /* ---------- Owner tabs + admin actions ---------- */
+  .owner-tabs { display: none; align-items: center; gap: 8px; margin-top: 10px; }
+  body.owner .owner-tabs { display: flex; }
+  .otab {
+    flex: 0 0 auto; border: 1px solid var(--card-edge); background: var(--card);
+    color: var(--ink-soft); font-size: 13.5px; font-weight: 600;
+    padding: 7px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .otab[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .reset-btn {
+    flex: 0 0 auto; border: 1px solid var(--card-edge); background: var(--card);
+    color: var(--ink-soft); font-size: 12.5px; font-weight: 600;
+    padding: 7px 11px; border-radius: 10px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  }
+  .reset-btn:hover { color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+  @media (max-width: 420px) { .reset-btn .reset-txt { display: none; } }
+  .owner-actions { flex-wrap: wrap; }
+  .owner-actions .btn { flex: 1 1 auto; }
 
   /* ---------- Grid ---------- */
   main { padding: 16px 14px 48px; max-width: 1100px; margin: 0 auto; }
@@ -368,6 +391,13 @@
     </button>
   </div>
 
+  <div class="owner-tabs" id="owner-tabs">
+    <button class="otab" data-tab="wishes" aria-pressed="true" data-i18n="tab_wishes" onclick="setOwnerTab('wishes')">Ønsker</button>
+    <button class="otab" data-tab="received" aria-pressed="false" data-i18n="tab_received" onclick="setOwnerTab('received')">Modtaget</button>
+    <span class="spacer"></span>
+    <button class="reset-btn" onclick="resetReservations()" data-i18n-title="reset_title" title="Nulstil alle reservationer">↺ <span class="reset-txt" data-i18n="reset_btn">Nulstil reservationer</span></button>
+  </div>
+
   <div class="search-wrap">
     <span class="mag" aria-hidden="true">🔍</span>
     <input id="search" type="search" inputmode="search" data-i18n-ph="search_ph" data-i18n-aria="search_aria" placeholder="Søg ønsker…" autocomplete="off" aria-label="Søg ønsker">
@@ -466,14 +496,30 @@
   </div>
 </div>
 
-<!-- Confirm: remove reservation (in-page, so it works in in-app browsers like Messenger) -->
+<!-- Mark as received (owner only): note the giver, log to history, remove from the list -->
+<div class="modal" id="received-modal">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="received-title">
+    <h2 id="received-title" data-i18n="received_title">Markér som modtaget</h2>
+    <p class="hint" id="received-sub"></p>
+    <div class="field">
+      <label for="r-from" data-i18n="received_from_label">Fra hvem?</label>
+      <input id="r-from" type="text" data-i18n-ph="received_from_ph" placeholder="F.eks. Mormor (valgfrit)">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" data-i18n="cancel" onclick="closeModal('received-modal')">Annullér</button>
+      <button class="btn btn-accent" id="received-save" data-i18n="received_save" onclick="saveReceived()">Gem i historik</button>
+    </div>
+  </div>
+</div>
+
+<!-- Generic confirm (in-page, so it works in in-app browsers like Messenger) -->
 <div class="modal" id="confirm-modal">
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-    <h2 id="confirm-title" data-i18n="confirm_unwrap_title">Fjern reservation?</h2>
-    <p class="hint" data-i18n="confirm_unwrap_body">Er du sikker på, at du vil fjerne reservationen?</p>
+    <h2 id="confirm-title">Bekræft</h2>
+    <p class="hint" id="confirm-body"></p>
     <div class="sheet-actions">
       <button class="btn btn-ghost" data-i18n="cancel" onclick="resolveConfirm(false)">Annullér</button>
-      <button class="btn btn-accent" data-i18n="confirm_unwrap_yes" onclick="resolveConfirm(true)">Fjern reservation</button>
+      <button class="btn btn-accent" id="confirm-yes" onclick="resolveConfirm(true)">OK</button>
     </div>
   </div>
 </div>
@@ -502,6 +548,12 @@ const WISHLIST_KEY = "YRnIflhWjOPdpcZD8wvGQiaV6L2eCMb5gEUBSF3J";
 const COLUMNS = ["id","title","description","url","image","price","currency","priority","category","reserved","reserved_by","reserved_at"];
 const OWNER_EDITABLE = ["title","description","url","image","price","currency","priority","category"];
 
+// Received-gifts history (owner only). A separate file so deleting a wish and
+// logging a received gift stay independent of the active wishlist.
+const RECEIVED_PATH = "received.csv";
+const RECEIVED_API  = `https://api.github.com/repos/${REPO}/contents/${RECEIVED_PATH}`;
+const RECEIVED_COLUMNS = ["id","title","from","received_at","price","currency","url","image"];
+
 /* ============================================================
    Language (Danish default, English optional, remembered per device)
    ============================================================ */
@@ -519,6 +571,26 @@ const STRINGS = {
     confirm_unwrap_title: "Fjern reservation?",
     confirm_unwrap_body: "Er du sikker på, at du vil fjerne reservationen?",
     confirm_unwrap_yes: "Fjern reservation",
+    tab_wishes: "Ønsker",
+    tab_received: "Modtaget",
+    reset_btn: "Nulstil reservationer",
+    reset_title: "Nulstil alle reservationer",
+    mark_received: "Modtaget",
+    delete: "Slet",
+    deleted: "Ønske slettet",
+    received_title: "Markér som modtaget",
+    received_from_label: "Fra hvem?",
+    received_from_ph: "F.eks. Mormor (valgfrit)",
+    received_save: "Gem i historik",
+    received_done: "Flyttet til historik",
+    received_from: "Fra {who}",
+    empty_received: "Ingen modtagne gaver endnu.",
+    confirm_delete_title: "Slet ønske?",
+    confirm_delete_body: "Slet „{title}” permanent? Det kan ikke fortrydes.",
+    confirm_reset_title: "Nulstil reservationer?",
+    confirm_reset_body: "Fjern alle reservationer på hele listen? Alle ønsker bliver ledige igen.",
+    reset_yes: "Nulstil alle",
+    reset_done: "Alle reservationer nulstillet",
     brand_sub_family: "{name}s ønsker",
     brand_sub_owner: "{name}s liste · ejer-visning",
     search_ph: "Søg ønsker…",
@@ -574,6 +646,26 @@ const STRINGS = {
     confirm_unwrap_title: "Remove reservation?",
     confirm_unwrap_body: "Are you sure you want to remove the reservation?",
     confirm_unwrap_yes: "Remove reservation",
+    tab_wishes: "Wishes",
+    tab_received: "Received",
+    reset_btn: "Reset reservations",
+    reset_title: "Reset all reservations",
+    mark_received: "Received",
+    delete: "Delete",
+    deleted: "Wish deleted",
+    received_title: "Mark as received",
+    received_from_label: "From whom?",
+    received_from_ph: "e.g. Grandma (optional)",
+    received_save: "Save to history",
+    received_done: "Moved to history",
+    received_from: "From {who}",
+    empty_received: "No received gifts yet.",
+    confirm_delete_title: "Delete wish?",
+    confirm_delete_body: "Delete “{title}” permanently? This cannot be undone.",
+    confirm_reset_title: "Reset reservations?",
+    confirm_reset_body: "Clear every reservation on the whole list? All wishes become available again.",
+    reset_yes: "Reset all",
+    reset_done: "All reservations reset",
     brand_sub_family: "{name}'s wishes",
     brand_sub_owner: "{name}'s list · owner view",
     search_ph: "Search wishes…",
@@ -647,7 +739,7 @@ function setLang(next) {
   lang = (next === "en") ? "en" : "da";
   localStorage.setItem("wl_lang", lang);
   applyStaticI18n();
-  render();
+  if (OWNER && ui.tab === "received") renderReceived(); else render();
 }
 
 /* ============================================================
@@ -657,8 +749,10 @@ const URL_OWNER = new URLSearchParams(location.search).get("owner") === "1";
 let OWNER = false;   // decided at boot: URL ?owner=1, a stored choice, or the landing "Rediger" flow
 let GH_TOKEN = localStorage.getItem("wl_gh_token") || "";
 let wishes = [];
-let ui = { q: "", sort: "wanted", showWrapped: true };
+let received = [];
+let ui = { q: "", sort: "wanted", showWrapped: true, tab: "wishes" };
 let editingId = null;
+let receivingId = null;
 let tokenResolve = null;
 
 const DEVICE = (() => {
@@ -713,6 +807,11 @@ function csvCell(v) {
 function buildCsv(rows) {
   const header = COLUMNS.join(",");
   const body = rows.map(r => COLUMNS.map(c => csvCell(r[c])).join(",")).join("\n");
+  return header + "\n" + body + (body ? "\n" : "");
+}
+function buildReceivedCsv(rows) {
+  const header = RECEIVED_COLUMNS.join(",");
+  const body = rows.map(r => RECEIVED_COLUMNS.map(c => csvCell(r[c])).join(",")).join("\n");
   return header + "\n" + body + (body ? "\n" : "");
 }
 // UTF-8 safe base64 (for the GitHub Contents API)
@@ -838,11 +937,20 @@ function cancelToken() {
 /* In-page confirm for removing a reservation. Native prompt()/confirm() are
    blocked in some in-app browsers (e.g. Messenger), so we use our own modal. */
 let confirmResolve = null;
-function confirmUnwrap() {
+function confirmDialog({ title, body, yes, danger }) {
+  document.getElementById("confirm-title").textContent = title;
+  document.getElementById("confirm-body").textContent = body;
+  const yesBtn = document.getElementById("confirm-yes");
+  yesBtn.textContent = yes;
+  yesBtn.classList.toggle("btn-danger", !!danger);
+  yesBtn.classList.toggle("btn-accent", !danger);
   return new Promise(resolve => {
     confirmResolve = resolve;
     document.getElementById("confirm-modal").classList.add("open");
   });
+}
+function confirmUnwrap() {
+  return confirmDialog({ title: t("confirm_unwrap_title"), body: t("confirm_unwrap_body"), yes: t("confirm_unwrap_yes") });
 }
 function resolveConfirm(val) {
   document.getElementById("confirm-modal").classList.remove("open");
@@ -876,6 +984,46 @@ async function ownerWrite(mutate, message, attempt = 0) {
     throw new Error(t("err_write") + res.status + ")" + (err.message ? ": " + err.message : ""));
   }
   return true;
+}
+
+// Write received.csv (creates it on first use). mutate(rows) -> new rows.
+async function receivedWrite(mutate, message, attempt = 0) {
+  if (!GH_TOKEN && !(await promptToken())) return false;
+  let sha, rows = [];
+  const meta = await fetch(`${RECEIVED_API}?ref=${BRANCH}`, {
+    headers: { Authorization: `token ${GH_TOKEN}` }, cache: "no-store"
+  });
+  if (meta.status === 401 || meta.status === 403) {
+    GH_TOKEN = ""; localStorage.removeItem("wl_gh_token");
+    throw new Error(t("err_token_rejected"));
+  }
+  if (meta.ok) { const j = await meta.json(); sha = j.sha; rows = parseCSV(b64decodeUtf8(j.content)).filter(r => r.id); }
+  else if (meta.status !== 404) throw new Error(t("err_read") + meta.status + ")");
+  const next = mutate(rows);
+  const payload = { message, content: b64encodeUtf8(buildReceivedCsv(next)), branch: BRANCH };
+  if (sha) payload.sha = sha;   // omit sha to create the file
+  const res = await fetch(RECEIVED_API, {
+    method: "PUT",
+    headers: { Authorization: `token ${GH_TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    if (res.status === 409 && attempt === 0) return receivedWrite(mutate, message, 1);
+    const err = await res.json().catch(() => ({}));
+    throw new Error(t("err_write") + res.status + ")" + (err.message ? ": " + err.message : ""));
+  }
+  return true;
+}
+
+// Read received.csv for the history tab (owner only). Missing file = empty.
+async function loadReceived() {
+  try {
+    const headers = { "Accept": "application/vnd.github+json" };
+    if (GH_TOKEN) headers.Authorization = `token ${GH_TOKEN}`;
+    const res = await fetch(`${RECEIVED_API}?ref=${BRANCH}&t=${Date.now()}`, { headers, cache: "no-store" });
+    received = res.ok ? parseCSV(b64decodeUtf8((await res.json()).content)).filter(r => r.id) : [];
+  } catch (e) { console.warn("received read failed:", e); received = []; }
+  renderReceived();
 }
 
 function slugify(s) {
@@ -967,9 +1115,16 @@ function cardHtml(w, animClass) {
 
   const shop = (w.url || "").trim()
     ? `<a class="shop" href="${escapeHtml(w.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(t("shop"))}</a>` : "";
-  const wrapBtn = OWNER
-    ? `<button class="btn btn-accent wrap-btn" onclick="openEdit('${escapeHtml(w.id)}')">${escapeHtml(t("edit"))}</button>`
-    : `<button class="btn btn-accent wrap-btn" onclick="doWrap('${escapeHtml(w.id)}')">${escapeHtml(t("wrap_it"))}</button>`;
+  const actions = OWNER
+    ? `<div class="card-actions owner-actions">
+        <button class="btn btn-accent" onclick="openEdit('${escapeHtml(w.id)}')">${escapeHtml(t("edit"))}</button>
+        <button class="btn btn-ghost" onclick="openReceived('${escapeHtml(w.id)}')">${escapeHtml(t("mark_received"))}</button>
+        <button class="btn btn-danger" onclick="confirmDelete('${escapeHtml(w.id)}')">${escapeHtml(t("delete"))}</button>
+      </div>`
+    : `<div class="card-actions">
+        <button class="btn btn-accent wrap-btn" onclick="doWrap('${escapeHtml(w.id)}')">${escapeHtml(t("wrap_it"))}</button>
+        ${shop}
+      </div>`;
 
   return `<article class="card ${animClass || ""}" data-id="${escapeHtml(w.id)}">
     ${thumb}
@@ -982,10 +1137,7 @@ function cardHtml(w, animClass) {
       <div class="meta">
         <span class="price">${escapeHtml(fmtPrice(w.price, w.currency))}</span>
       </div>
-      <div class="card-actions">
-        ${wrapBtn}
-        ${shop}
-      </div>
+      ${actions}
     </div>
   </article>`;
 }
@@ -1011,6 +1163,46 @@ function render(animId, animKind) {
     const anim = (w.id === animId) ? (animKind === "unwrap" ? "unwrapping" : "wrapping") : "";
     return cardHtml(w, anim);
   }).join("");
+}
+
+/* ---------- Received history (owner "Modtaget" tab) ---------- */
+function fmtDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  try { return d.toLocaleDateString(lang === "da" ? "da-DK" : "en-GB", { year: "numeric", month: "short", day: "numeric" }); }
+  catch (_) { return iso.slice(0, 10); }
+}
+function receivedCardHtml(r) {
+  const img = (r.image || "").trim();
+  const thumb = img
+    ? `<div class="thumb"><img src="${escapeHtml(img)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:contain" onerror="this.parentNode.textContent='🎁'"></div>`
+    : `<div class="thumb">🎁</div>`;
+  const from = (r.from || "").trim();
+  const when = fmtDate(r.received_at);
+  const sub = [from ? t("received_from", { who: from }) : "", when].filter(Boolean).join(" · ");
+  return `<article class="card">
+    ${thumb}
+    <div class="card-main">
+      <div class="card-top"><h3 class="card-title">${escapeHtml(r.title)}</h3></div>
+      ${sub ? `<p class="desc">${escapeHtml(sub)}</p>` : ""}
+      <div class="meta">
+        <span class="price">${escapeHtml(fmtPrice(r.price, r.currency))}</span>
+      </div>
+    </div>
+  </article>`;
+}
+function renderReceived() {
+  const grid = document.getElementById("grid");
+  const status = document.getElementById("status");
+  document.getElementById("brand-sub").textContent = t("brand_sub_owner", { name: OWNER_NAME });
+  if (!received.length) {
+    status.innerHTML = '<span class="big">🎁</span>' + escapeHtml(t("empty_received"));
+    status.hidden = false; grid.hidden = true; return;
+  }
+  const list = received.slice().sort((a, b) => (b.received_at || "").localeCompare(a.received_at || ""));
+  status.hidden = true; grid.hidden = false;
+  grid.innerHTML = list.map(receivedCardHtml).join("");
 }
 
 /* ============================================================
@@ -1088,6 +1280,68 @@ async function saveWish() {
   } finally {
     btn.disabled = false; btn.textContent = label;
   }
+}
+
+/* ============================================================
+   Owner admin — mark received, delete, reset reservations, tabs
+   ============================================================ */
+function openReceived(id) {
+  const w = wishes.find(x => x.id === id); if (!w) return;
+  receivingId = id;
+  document.getElementById("received-sub").textContent = w.title;
+  document.getElementById("r-from").value = "";
+  document.getElementById("received-modal").classList.add("open");
+  setTimeout(() => document.getElementById("r-from").focus(), 50);
+}
+async function saveReceived() {
+  const w = wishes.find(x => x.id === receivingId); if (!w) return;
+  const from = document.getElementById("r-from").value.trim();
+  const btn = document.getElementById("received-save");
+  btn.disabled = true; const label = btn.textContent; btn.textContent = t("saving");
+  try {
+    const row = {
+      id: w.id, title: w.title, from, received_at: new Date().toISOString(),
+      price: w.price || "", currency: w.currency || "DKK", url: w.url || "", image: w.image || "",
+    };
+    await receivedWrite(rows => rows.concat([row]), `Received: ${w.title}`);     // log first
+    await ownerWrite(rows => rows.filter(r => r.id !== w.id), `Received (remove from wishlist): ${w.id}`);
+    closeModal("received-modal");
+    await load();
+    toast(t("received_done"));
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+async function confirmDelete(id) {
+  const w = wishes.find(x => x.id === id); if (!w) return;
+  if (!(await confirmDialog({ title: t("confirm_delete_title"), body: t("confirm_delete_body", { title: w.title }), yes: t("delete"), danger: true }))) return;
+  try {
+    await ownerWrite(rows => rows.filter(r => r.id !== id), `Delete: ${id}`);
+    await load();
+    toast(t("deleted"));
+  } catch (e) {
+    toast(e.message);
+  }
+}
+async function resetReservations() {
+  if (!(await confirmDialog({ title: t("confirm_reset_title"), body: t("confirm_reset_body"), yes: t("reset_yes"), danger: true }))) return;
+  try {
+    await ownerWrite(rows => rows.map(r => ({ ...r, reserved: "0", reserved_by: "", reserved_at: "" })), "Reset all reservations");
+    toast(t("reset_done"));
+  } catch (e) {
+    toast(e.message);
+  }
+}
+function setOwnerTab(tab) {
+  ui.tab = tab;
+  document.querySelectorAll("#owner-tabs .otab").forEach(b => b.setAttribute("aria-pressed", b.dataset.tab === tab));
+  const received = tab === "received";
+  document.querySelector(".search-wrap").style.display = received ? "none" : "";
+  document.querySelector(".toolbar").style.display = received ? "none" : "";
+  document.getElementById("fab").style.display = received ? "none" : "";
+  if (received) loadReceived(); else render();
 }
 
 /* ============================================================
